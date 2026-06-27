@@ -22,12 +22,14 @@ export default function Terminal() {
   const [empSeleccionado, setEmpSeleccionado] = useState<Empleado | null>(null)
   const [pin, setPin] = useState('')
   const [pinError, setPinError] = useState(false)
+  const [sinPin, setSinPin] = useState(false)
 
   const resetFallback = () => {
     setBusqueda('')
     setEmpSeleccionado(null)
     setPin('')
     setPinError(false)
+    setSinPin(false)
     fallidosRef.current = 0
   }
 
@@ -64,6 +66,9 @@ export default function Terminal() {
           if (fallidosRef.current >= 3) {
             fallidosRef.current = 0
             lockRef.current = true
+            // Recarga empleados para tener PINs actualizados
+            supabase.from('empleados').select('*').eq('activo', true)
+              .then(({ data }) => { if (data) setEmpleados(data) })
             setEstado({ tipo: 'fallback' })
           }
         }
@@ -104,6 +109,7 @@ export default function Terminal() {
 
   const presionarTecla = async (tecla: string) => {
     if (pinError) setPinError(false)
+    if (sinPin) setSinPin(false)
     if (tecla === 'borrar') { setPin(p => p.slice(0, -1)); return }
     if (pin.length >= 4) return
     const nuevo = pin + tecla
@@ -113,7 +119,12 @@ export default function Terminal() {
 
   const verificarPin = async (pinIngresado: string) => {
     if (!empSeleccionado) return
-    if (!empSeleccionado.pin || empSeleccionado.pin !== pinIngresado) {
+    if (!empSeleccionado.pin) {
+      setSinPin(true)
+      setPin('')
+      return
+    }
+    if (empSeleccionado.pin !== pinIngresado) {
       setPinError(true)
       setTimeout(() => { setPin(''); setPinError(false) }, 900)
       return
@@ -228,7 +239,7 @@ export default function Terminal() {
           {empSeleccionado && (
             <div className="flex flex-col items-center flex-1 justify-center px-6 pb-10 gap-6">
               <button
-                onClick={() => { setEmpSeleccionado(null); setPin(''); setPinError(false) }}
+                onClick={() => { setEmpSeleccionado(null); setPin(''); setPinError(false); setSinPin(false) }}
                 className="self-start flex items-center gap-1.5 text-sm text-white/50 hover:text-white transition"
               >
                 <ChevronLeft size={16} /> Cambiar empleado
@@ -252,6 +263,12 @@ export default function Terminal() {
               {pinError && (
                 <div className="flex items-center gap-1.5 text-red-400 text-sm -mt-3">
                   <AlertCircle size={15} /> PIN incorrecto
+                </div>
+              )}
+              {sinPin && (
+                <div className="flex items-center gap-1.5 text-yellow-400 text-sm -mt-3 text-center max-w-[260px]">
+                  <AlertCircle size={15} className="shrink-0" />
+                  Este empleado no tiene PIN. Configúrelo en el panel de administración.
                 </div>
               )}
 
