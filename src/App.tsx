@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { supabase } from './lib/supabase'
 import type { Session } from '@supabase/supabase-js'
-import Kiosco from './pages/Kiosco'
+import Terminal from './pages/Terminal'
 import Login from './pages/Login'
 import AdminPanel from './pages/admin/AdminPanel'
 
@@ -30,7 +30,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Navigate to="/admin" replace />} />
-        <Route path="/kiosco" element={<Kiosco />} />
+        <Route path="/kiosco" element={<Terminal />} />
         <Route path="/admin" element={<AdminGate />} />
         <Route path="*" element={<Navigate to="/admin" replace />} />
       </Routes>
