@@ -50,7 +50,33 @@ export default function AdminPanel() {
     a.click()
   }
 
-  const fmt = (d: string) => new Date(d).toLocaleString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+  const fmtHora = (d: string) => new Date(d).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
+
+  // Agrupa marcaciones por día (clave: YYYY-MM-DD)
+  const porDia = marcaciones.reduce<Record<string, Marcacion[]>>((acc, m) => {
+    const dia = new Date(m.timestamp).toISOString().slice(0, 10)
+    ;(acc[dia] ??= []).push(m)
+    return acc
+  }, {})
+  const dias = Object.keys(porDia).sort((a, b) => b.localeCompare(a))
+
+  const tituloDia = (iso: string) => {
+    const d = new Date(iso + 'T12:00:00')
+    return d.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' })
+  }
+
+  // Calcula horas trabajadas de un empleado en un día (suma pares entrada→salida)
+  const horasDelDia = (lista: Marcacion[]) => {
+    const ordenado = [...lista].sort((a, b) => a.timestamp.localeCompare(b.timestamp))
+    let totalMs = 0, entrada: number | null = null
+    for (const m of ordenado) {
+      if (m.tipo === 'entrada') entrada = new Date(m.timestamp).getTime()
+      else if (m.tipo === 'salida' && entrada != null) { totalMs += new Date(m.timestamp).getTime() - entrada; entrada = null }
+    }
+    if (totalMs === 0) return null
+    const h = Math.floor(totalMs / 3.6e6), min = Math.round((totalMs % 3.6e6) / 60000)
+    return `${h}h ${min}m`
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -117,19 +143,58 @@ export default function AdminPanel() {
                 <Download size={15} /> Exportar a Excel
               </button>
             </div>
-            <div className="bg-white rounded-xl border border-gray-100 divide-y divide-gray-50">
-              {marcaciones.length === 0 ? (
-                <p className="text-center text-sm text-gray-400 py-12">Aún no hay marcaciones.</p>
-              ) : marcaciones.map(m => (
-                <div key={m.id} className="flex items-center gap-3 px-5 py-3">
-                  <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${m.tipo === 'entrada' ? 'bg-brand-50 text-brand-700' : 'bg-orange-50 text-orange-600'}`}>
-                    {m.tipo}
-                  </span>
-                  <span className="flex-1 text-sm text-gray-900 truncate">{m.empleado?.nombre ?? '—'}</span>
-                  <span className="text-xs text-gray-400">{fmt(m.timestamp)}</span>
-                </div>
-              ))}
-            </div>
+            {marcaciones.length === 0 ? (
+              <div className="bg-white rounded-xl border border-gray-100 py-12 text-center text-sm text-gray-400">
+                Aún no hay marcaciones.
+              </div>
+            ) : (
+              <div className="space-y-5">
+                {dias.map(dia => {
+                  // Agrupa el día por empleado
+                  const porEmpleado = porDia[dia].reduce<Record<string, Marcacion[]>>((acc, m) => {
+                    const k = m.empleado?.nombre ?? m.empleado_id
+                    ;(acc[k] ??= []).push(m)
+                    return acc
+                  }, {})
+                  return (
+                    <div key={dia}>
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2 capitalize">{tituloDia(dia)}</h3>
+                      <div className="bg-white rounded-xl border border-gray-100 overflow-hidden divide-y divide-gray-50">
+                        {Object.entries(porEmpleado).map(([nombre, lista]) => {
+                          const ordenado = [...lista].sort((a, b) => a.timestamp.localeCompare(b.timestamp))
+                          const horas = horasDelDia(lista)
+                          return (
+                            <div key={nombre} className="px-5 py-3.5">
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <div className="w-8 h-8 rounded-full bg-brand-600 text-white flex items-center justify-center text-[11px] font-bold shrink-0">
+                                    {nombre.slice(0, 2).toUpperCase()}
+                                  </div>
+                                  <span className="text-sm font-semibold text-gray-900 truncate">{nombre}</span>
+                                </div>
+                                {horas && (
+                                  <span className="text-xs font-semibold text-brand-700 bg-brand-50 px-2.5 py-1 rounded-full shrink-0">
+                                    {horas} trabajadas
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex flex-wrap gap-1.5 pl-10">
+                                {ordenado.map(m => (
+                                  <span key={m.id} className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md ${m.tipo === 'entrada' ? 'bg-brand-50 text-brand-700' : 'bg-orange-50 text-orange-600'}`}>
+                                    <span className="font-semibold capitalize">{m.tipo}</span>
+                                    <span className="tabular-nums">{fmtHora(m.timestamp)}</span>
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </>
         )}
       </div>

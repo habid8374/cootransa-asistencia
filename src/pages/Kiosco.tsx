@@ -72,7 +72,7 @@ export default function Kiosco() {
     await supabase.from('marcaciones').insert({ empleado_id: emp.id, tipo: marca, timestamp: now.toISOString() })
 
     setEstado({ tipo: 'exito', empleado: emp, marca, hora: now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }) })
-    setTimeout(() => { setEstado({ tipo: 'escaneando' }); lockRef.current = false }, 4000)
+    setTimeout(() => { setEstado({ tipo: 'escaneando' }); lockRef.current = false }, 2800)
   }
 
   const fecha = reloj.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })

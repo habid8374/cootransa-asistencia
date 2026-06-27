@@ -17,7 +17,8 @@ export async function loadModels(): Promise<void> {
   loaded = true
 }
 
-const detectorOptions = new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 })
+// inputSize menor = reconocimiento más rápido. 224 es buen balance velocidad/precisión.
+const detectorOptions = new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 })
 
 /**
  * Detecta un rostro en el elemento de video/imagen y devuelve su descriptor (128 floats),
