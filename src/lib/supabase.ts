@@ -79,3 +79,61 @@ export interface Permiso {
   created_at?: string
   empleado?: Pick<Empleado, 'nombre' | 'cedula'>
 }
+
+// ── Módulo de Tiquetes ─────────────────────────────────────────
+
+export interface Ruta {
+  id: string
+  origen: string
+  destino: string
+  precio_base: number
+  duracion_min?: number
+  activa: boolean
+  created_at?: string
+}
+
+export interface Bus {
+  id: string
+  placa: string
+  nombre?: string
+  capacidad: number
+  activo: boolean
+  created_at?: string
+}
+
+export interface Viaje {
+  id: string
+  ruta_id: string
+  bus_id?: string
+  fecha: string
+  hora_salida: string
+  precio: number
+  capacidad_disponible: number
+  estado: 'programado' | 'en_curso' | 'completado' | 'cancelado'
+  created_at?: string
+  ruta?: Ruta
+  bus?: Bus
+}
+
+export interface Pasajero {
+  id: string
+  nombre: string
+  cedula: string
+  email?: string
+  telefono?: string
+  created_at?: string
+}
+
+export interface Tiquete {
+  id: string
+  viaje_id: string
+  pasajero_id: string
+  precio: number
+  estado: 'pendiente' | 'confirmado' | 'usado' | 'cancelado'
+  metodo_pago?: 'nequi' | 'daviplata' | 'pse' | 'tarjeta' | 'taquilla'
+  referencia_pago?: string
+  usado_at?: string
+  created_at?: string
+  viaje?: Viaje
+  pasajero?: Pasajero
+}

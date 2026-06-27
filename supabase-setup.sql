@@ -165,5 +165,110 @@ create policy "admin gestiona festivos"        on festivos         for all using
 create policy "admin gestiona empleado_turnos" on empleado_turnos  for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
 -- ============================================================
+-- MÓDULO DE TIQUETES ELECTRÓNICOS
+-- Ejecutar en Supabase → SQL Editor
+-- ============================================================
+
+-- Rutas de transporte
+create table if not exists rutas (
+  id uuid primary key default gen_random_uuid(),
+  origen text not null,
+  destino text not null,
+  precio_base numeric(10,2) not null default 0,
+  duracion_min int,
+  activa boolean not null default true,
+  created_at timestamptz default now()
+);
+
+-- Flota de vehículos
+create table if not exists buses (
+  id uuid primary key default gen_random_uuid(),
+  placa text not null unique,
+  nombre text,
+  capacidad int not null default 40,
+  activo boolean not null default true,
+  created_at timestamptz default now()
+);
+
+-- Viajes programados
+create table if not exists viajes (
+  id uuid primary key default gen_random_uuid(),
+  ruta_id uuid not null references rutas(id) on delete cascade,
+  bus_id uuid references buses(id) on delete set null,
+  fecha date not null,
+  hora_salida time not null,
+  precio numeric(10,2) not null,
+  capacidad_disponible int not null,
+  estado text not null default 'programado'
+    check (estado in ('programado','en_curso','completado','cancelado')),
+  created_at timestamptz default now()
+);
+
+create index if not exists idx_viajes_fecha on viajes(fecha);
+create index if not exists idx_viajes_ruta on viajes(ruta_id);
+create index if not exists idx_viajes_estado on viajes(estado);
+
+-- Pasajeros
+create table if not exists pasajeros (
+  id uuid primary key default gen_random_uuid(),
+  nombre text not null,
+  cedula text not null unique,
+  email text,
+  telefono text,
+  created_at timestamptz default now()
+);
+
+create index if not exists idx_pasajeros_cedula on pasajeros(cedula);
+
+-- Tiquetes
+create table if not exists tiquetes (
+  id uuid primary key default gen_random_uuid(),
+  viaje_id uuid not null references viajes(id) on delete cascade,
+  pasajero_id uuid not null references pasajeros(id) on delete cascade,
+  precio numeric(10,2) not null,
+  estado text not null default 'pendiente'
+    check (estado in ('pendiente','confirmado','usado','cancelado')),
+  metodo_pago text check (metodo_pago in ('nequi','daviplata','pse','tarjeta','taquilla')),
+  referencia_pago text,
+  usado_at timestamptz,
+  created_at timestamptz default now()
+);
+
+create index if not exists idx_tiquetes_viaje on tiquetes(viaje_id);
+create index if not exists idx_tiquetes_pasajero on tiquetes(pasajero_id);
+create index if not exists idx_tiquetes_estado on tiquetes(estado);
+
+-- RLS para módulo de tiquetes
+alter table rutas    enable row level security;
+alter table buses    enable row level security;
+alter table viajes   enable row level security;
+alter table pasajeros enable row level security;
+alter table tiquetes enable row level security;
+
+-- Lectura pública (pasajeros consultan viajes y sus tiquetes)
+create policy "lectura rutas"    on rutas    for select using (true);
+create policy "lectura buses"    on buses    for select using (true);
+create policy "lectura viajes"   on viajes   for select using (true);
+create policy "lectura pasajeros" on pasajeros for select using (true);
+create policy "lectura tiquetes" on tiquetes for select using (true);
+
+-- Pasajeros y tiquetes: inserción pública (compra sin login)
+create policy "compra pasajero"  on pasajeros for insert with check (true);
+create policy "compra tiquete"   on tiquetes  for insert with check (true);
+
+-- Actualización de tiquetes pública (conductor marca como usado, pasajero puede confirmar)
+create policy "actualizar tiquete" on tiquetes for update using (true) with check (true);
+
+-- Actualización de viajes pública (decrementar capacidad al comprar)
+create policy "actualizar viaje" on viajes for update using (true) with check (true);
+
+-- Admin gestiona todo
+create policy "admin gestiona rutas"     on rutas     for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "admin gestiona buses"     on buses     for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "admin gestiona viajes"    on viajes    for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "admin gestiona pasajeros" on pasajeros for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "admin gestiona tiquetes"  on tiquetes  for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+
+-- ============================================================
 -- LISTO. Crea tu usuario admin en Supabase → Authentication → Add user
 -- ============================================================

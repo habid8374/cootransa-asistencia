@@ -9,10 +9,11 @@ import ResumenMensual from './ResumenMensual'
 import Permisos from './Permisos'
 import Tendencias from './Tendencias'
 import Configuracion from './Configuracion'
+import GestionTiquetes from './GestionTiquetes'
 import Modal from '../../components/Modal'
-import { Users, ClipboardList, UserPlus, LogOut, Monitor, Trash2, Pencil, LayoutDashboard, BarChart3, ShieldCheck, TrendingUp, History, Power, Settings } from 'lucide-react'
+import { Users, ClipboardList, UserPlus, LogOut, Monitor, Trash2, Pencil, LayoutDashboard, BarChart3, ShieldCheck, TrendingUp, History, Power, Settings, Ticket } from 'lucide-react'
 
-type Tab = 'hoy' | 'empleados' | 'permisos' | 'reportes' | 'mensual' | 'tendencias' | 'config'
+type Tab = 'hoy' | 'empleados' | 'permisos' | 'reportes' | 'mensual' | 'tendencias' | 'config' | 'tiquetes'
 
 interface ModalState {
   title: string
@@ -76,6 +77,7 @@ export default function AdminPanel() {
     { key: 'mensual', label: 'Mensual', icon: <BarChart3 size={15} /> },
     { key: 'tendencias', label: 'Tendencias', icon: <TrendingUp size={15} /> },
     { key: 'config',     label: 'Configuración', icon: <Settings size={15} /> },
+    { key: 'tiquetes',   label: 'Tiquetes',       icon: <Ticket size={15} /> },
   ]
 
   return (
@@ -88,11 +90,18 @@ export default function AdminPanel() {
           </div>
           <div className="flex items-center gap-2">
             <a
+              href="/tiquetes"
+              target="_blank"
+              className="text-xs font-semibold text-blue-700 bg-blue-50 px-3 py-1.5 rounded-lg flex items-center gap-1.5 hover:bg-blue-100 transition"
+            >
+              <Ticket size={14} /> Tiquetes
+            </a>
+            <a
               href="/kiosco"
               target="_blank"
               className="text-xs font-semibold text-brand-700 bg-brand-50 px-3 py-1.5 rounded-lg flex items-center gap-1.5 hover:bg-brand-100 transition"
             >
-              <Monitor size={14} /> Abrir terminal
+              <Monitor size={14} /> Terminal
             </a>
             <button
               onClick={() => supabase.auth.signOut()}
@@ -219,6 +228,7 @@ export default function AdminPanel() {
         {tab === 'mensual' && <ResumenMensual />}
         {tab === 'tendencias' && <Tendencias />}
         {tab === 'config' && <Configuracion />}
+        {tab === 'tiquetes' && <GestionTiquetes />}
       </div>
 
       {showRegistrar && (
