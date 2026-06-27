@@ -2,9 +2,18 @@ import { useState } from 'react'
 import { supabase, type Empleado } from '../../lib/supabase'
 import { loadModels, getDescriptor } from '../../lib/face'
 import { useCamera } from '../../hooks/useCamera'
-import { Camera, Loader2, CheckCircle2, X, RefreshCw } from 'lucide-react'
+import { Camera, Loader2, CheckCircle2, X, RefreshCw, Clock } from 'lucide-react'
 
 const INPUT = 'w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100'
+
+function capturarFoto(video: HTMLVideoElement): string {
+  const canvas = document.createElement('canvas')
+  canvas.width = 160; canvas.height = 120
+  const ctx = canvas.getContext('2d')!
+  ctx.translate(canvas.width, 0); ctx.scale(-1, 1)
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+  return canvas.toDataURL('image/jpeg', 0.65)
+}
 
 export default function EditarEmpleado({
   empleado,
@@ -20,8 +29,11 @@ export default function EditarEmpleado({
   const [cedula, setCedula] = useState(empleado.cedula)
   const [cargo, setCargo] = useState(empleado.cargo ?? '')
   const [pin, setPin] = useState(empleado.pin ?? '')
+  const [horaEntrada, setHoraEntrada] = useState(empleado.hora_entrada ?? '')
   const [descriptor, setDescriptor] = useState<number[] | null>(empleado.descriptor ?? null)
+  const [fotoUrl, setFotoUrl] = useState<string | null>(empleado.foto_url ?? null)
   const [rostroCambiado, setRostroCambiado] = useState(false)
+  const [fotoCambiada, setFotoCambiada] = useState(false)
   const [mostrarCamara, setMostrarCamara] = useState(false)
   const [capturando, setCapturando] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -29,14 +41,15 @@ export default function EditarEmpleado({
 
   const capturar = async () => {
     if (!videoRef.current) return
-    setCapturando(true)
-    setMsg('')
+    setCapturando(true); setMsg('')
     await loadModels()
     const desc = await getDescriptor(videoRef.current)
     if (desc) {
       setDescriptor(Array.from(desc))
+      setFotoUrl(capturarFoto(videoRef.current))
       setRostroCambiado(true)
-      setMsg('Rostro actualizado correctamente.')
+      setFotoCambiada(true)
+      setMsg('Rostro y foto actualizados correctamente.')
     } else {
       setMsg('No se detectó ningún rostro. Intente de nuevo.')
     }
@@ -52,8 +65,10 @@ export default function EditarEmpleado({
       cedula,
       cargo: cargo || undefined,
       pin: pin || undefined,
+      hora_entrada: horaEntrada || undefined,
     }
     if (rostroCambiado && descriptor) updates.descriptor = descriptor
+    if (fotoCambiada && fotoUrl) updates.foto_url = fotoUrl
     const { error } = await supabase.from('empleados').update(updates).eq('id', empleado.id)
     setSaving(false)
     if (error) { setMsg('Error al guardar: ' + error.message); return }
@@ -70,9 +85,18 @@ export default function EditarEmpleado({
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <div>
-            <h2 className="text-base font-bold text-gray-900">Editar empleado</h2>
-            <p className="text-xs text-gray-400 mt-0.5">{empleado.nombre}</p>
+          <div className="flex items-center gap-3">
+            {fotoUrl ? (
+              <img src={fotoUrl} className="w-9 h-9 rounded-full object-cover border border-gray-100" alt="" />
+            ) : (
+              <div className="w-9 h-9 rounded-full bg-brand-600 text-white flex items-center justify-center text-xs font-bold shrink-0">
+                {empleado.nombre.slice(0, 2).toUpperCase()}
+              </div>
+            )}
+            <div>
+              <h2 className="text-base font-bold text-gray-900">Editar empleado</h2>
+              <p className="text-xs text-gray-400 mt-0.5">{empleado.nombre}</p>
+            </div>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100">
             <X size={18} />
@@ -80,7 +104,6 @@ export default function EditarEmpleado({
         </div>
 
         <form onSubmit={guardar} className="p-6 space-y-4">
-          {/* Datos básicos */}
           <input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Nombre completo" required className={INPUT} />
           <input value={cedula} onChange={e => setCedula(e.target.value)} placeholder="Cédula" required className={INPUT} />
           <input value={cargo} onChange={e => setCargo(e.target.value)} placeholder="Cargo (opcional)" className={INPUT} />
@@ -98,7 +121,20 @@ export default function EditarEmpleado({
             <p className="text-xs text-gray-400 mt-1 pl-1">Dejar vacío para mantener el PIN actual.</p>
           </div>
 
-          {/* Sección de rostro */}
+          <div>
+            <label className="text-xs font-semibold text-gray-500 mb-1 flex items-center gap-1.5">
+              <Clock size={12} /> Hora de entrada esperada (opcional)
+            </label>
+            <input
+              type="time"
+              value={horaEntrada}
+              onChange={e => setHoraEntrada(e.target.value)}
+              className={INPUT}
+            />
+            <p className="text-xs text-gray-400 mt-1 pl-1">Se usa para detectar tardanzas en el dashboard.</p>
+          </div>
+
+          {/* Facial recognition section */}
           <div className="border border-gray-100 rounded-xl overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3">
               <div>

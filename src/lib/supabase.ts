@@ -13,6 +13,7 @@ export interface Empleado {
   foto_url?: string
   descriptor?: number[]
   pin?: string
+  hora_entrada?: string  // HH:MM expected arrival for tardanza detection
   activo: boolean
   created_at?: string
 }

@@ -12,12 +12,14 @@ create table if not exists empleados (
   foto_url text,
   descriptor jsonb,              -- vector facial de 128 números (face-api.js)
   pin text,                      -- PIN de 4 dígitos (respaldo si falla reconocimiento facial)
+  hora_entrada text,             -- HH:MM hora esperada de llegada para detectar tardanzas
   activo boolean not null default true,
   created_at timestamptz default now()
 );
 
--- Si ya tienes la tabla creada, ejecuta esto para agregar el PIN:
+-- Si ya tienes la tabla creada, ejecuta estas migraciones:
 -- alter table empleados add column if not exists pin text;
+-- alter table empleados add column if not exists hora_entrada text;
 
 -- Tabla de marcaciones (entradas/salidas)
 create table if not exists marcaciones (
