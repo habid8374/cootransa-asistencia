@@ -81,6 +81,9 @@ export default function Kiosco() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 to-brand-700 flex flex-col items-center justify-center p-4 text-white">
       <div className="absolute top-6 left-0 right-0 text-center">
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/40 mb-1">
+          Terminal de Asistencia Biométrica
+        </p>
         <div className="text-4xl font-bold tabular-nums tracking-tight flex items-center justify-center gap-2">
           <Clock size={28} /> {hora}
         </div>
