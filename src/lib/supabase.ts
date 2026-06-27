@@ -11,7 +11,8 @@ export interface Empleado {
   cedula: string
   cargo?: string
   foto_url?: string
-  descriptor?: number[]        // face descriptor (128 floats) para reconocimiento
+  descriptor?: number[]
+  pin?: string
   activo: boolean
   created_at?: string
 }
