@@ -35,7 +35,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<TiquetesHome />} />
+        <Route path="/" element={<Navigate to="/admin" replace />} />
         <Route path="/kiosco" element={<Terminal />} />
         <Route path="/admin" element={<AdminGate />} />
         <Route path="/tiquetes" element={<TiquetesHome />} />
@@ -44,7 +44,7 @@ export default function App() {
         <Route path="/tiquetes/ver/:id" element={<MiTiquete />} />
         <Route path="/tiquetes/mis-tiquetes" element={<MisTiquetes />} />
         <Route path="/conductor" element={<ValidarQR />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<Navigate to="/admin" replace />} />
       </Routes>
     </BrowserRouter>
   )
