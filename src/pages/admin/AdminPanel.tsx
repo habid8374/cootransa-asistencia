@@ -8,10 +8,11 @@ import Reportes from './Reportes'
 import ResumenMensual from './ResumenMensual'
 import Permisos from './Permisos'
 import Tendencias from './Tendencias'
+import Configuracion from './Configuracion'
 import Modal from '../../components/Modal'
-import { Users, ClipboardList, UserPlus, LogOut, Monitor, Trash2, Pencil, LayoutDashboard, BarChart3, ShieldCheck, TrendingUp, History, Power } from 'lucide-react'
+import { Users, ClipboardList, UserPlus, LogOut, Monitor, Trash2, Pencil, LayoutDashboard, BarChart3, ShieldCheck, TrendingUp, History, Power, Settings } from 'lucide-react'
 
-type Tab = 'hoy' | 'empleados' | 'permisos' | 'reportes' | 'mensual' | 'tendencias'
+type Tab = 'hoy' | 'empleados' | 'permisos' | 'reportes' | 'mensual' | 'tendencias' | 'config'
 
 interface ModalState {
   title: string
@@ -74,6 +75,7 @@ export default function AdminPanel() {
     { key: 'reportes', label: 'Reportes', icon: <ClipboardList size={15} /> },
     { key: 'mensual', label: 'Mensual', icon: <BarChart3 size={15} /> },
     { key: 'tendencias', label: 'Tendencias', icon: <TrendingUp size={15} /> },
+    { key: 'config',     label: 'Configuración', icon: <Settings size={15} /> },
   ]
 
   return (
@@ -216,6 +218,7 @@ export default function AdminPanel() {
         {tab === 'reportes' && <Reportes />}
         {tab === 'mensual' && <ResumenMensual />}
         {tab === 'tendencias' && <Tendencias />}
+        {tab === 'config' && <Configuracion />}
       </div>
 
       {showRegistrar && (

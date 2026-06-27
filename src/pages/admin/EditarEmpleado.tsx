@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { supabase, type Empleado } from '../../lib/supabase'
+import { useEffect, useState } from 'react'
+import { supabase, type Empleado, type TipoEmpleado } from '../../lib/supabase'
 import { loadModels, getDescriptor } from '../../lib/face'
 import { useCamera } from '../../hooks/useCamera'
 import { Camera, Loader2, CheckCircle2, X, RefreshCw, LogIn, LogOut, UserCircle2 } from 'lucide-react'
@@ -31,6 +31,8 @@ export default function EditarEmpleado({
   const [pin, setPin] = useState(empleado.pin ?? '')
   const [horaEntrada, setHoraEntrada] = useState(empleado.hora_entrada ?? '')
   const [horaSalida, setHoraSalida] = useState(empleado.hora_salida ?? '')
+  const [tipoEmpleadoId, setTipoEmpleadoId] = useState(empleado.tipo_empleado_id ?? '')
+  const [tipos, setTipos] = useState<TipoEmpleado[]>([])
   const [descriptor, setDescriptor] = useState<number[] | null>(empleado.descriptor ?? null)
   const [fotoUrl, setFotoUrl] = useState<string | null>(empleado.foto_url ?? null)
   const [rostroCambiado, setRostroCambiado] = useState(false)
@@ -40,6 +42,10 @@ export default function EditarEmpleado({
   const [capturando, setCapturando] = useState(false)
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState('')
+
+  useEffect(() => {
+    supabase.from('tipos_empleado').select('*').order('nombre').then(({ data }) => setTipos(data ?? []))
+  }, [])
 
   const capturar = async () => {
     if (!videoRef.current) return
@@ -70,6 +76,7 @@ export default function EditarEmpleado({
       pin: pin || undefined,
       hora_entrada: horaEntrada,
       hora_salida: horaSalida,
+      tipo_empleado_id: tipoEmpleadoId || undefined,
     }
     if (rostroCambiado && descriptor) updates.descriptor = descriptor
     if (fotoCambiada && fotoUrl) updates.foto_url = fotoUrl
@@ -108,6 +115,12 @@ export default function EditarEmpleado({
           <input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Nombre completo" required className={INPUT} />
           <input value={cedula} onChange={e => setCedula(e.target.value)} placeholder="Cédula" required className={INPUT} />
           <input value={cargo} onChange={e => setCargo(e.target.value)} placeholder="Cargo (opcional)" className={INPUT} />
+          {tipos.length > 0 && (
+            <select value={tipoEmpleadoId} onChange={e => setTipoEmpleadoId(e.target.value)} className={INPUT}>
+              <option value="">Tipo de empleado (opcional)</option>
+              {tipos.map(t => <option key={t.id} value={t.id}>{t.nombre}</option>)}
+            </select>
+          )}
 
           <div>
             <input
