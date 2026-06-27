@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { supabase, type Empleado, type Marcacion } from '../../lib/supabase'
 import RegistrarEmpleado from './RegistrarEmpleado'
+import EditarEmpleado from './EditarEmpleado'
 import Modal from '../../components/Modal'
-import { Users, ClipboardList, UserPlus, LogOut, Monitor, Trash2, Download } from 'lucide-react'
+import { Users, ClipboardList, UserPlus, LogOut, Monitor, Trash2, Download, Pencil } from 'lucide-react'
 
 type Tab = 'empleados' | 'reportes'
 
@@ -19,6 +20,7 @@ export default function AdminPanel() {
   const [empleados, setEmpleados] = useState<Empleado[]>([])
   const [marcaciones, setMarcaciones] = useState<Marcacion[]>([])
   const [showRegistrar, setShowRegistrar] = useState(false)
+  const [editarEmpleado, setEditarEmpleado] = useState<Empleado | null>(null)
   const [modal, setModal] = useState<ModalState | null>(null)
 
   const cargarEmpleados = async () => {
@@ -181,13 +183,22 @@ export default function AdminPanel() {
                     </div>
                     <p className="text-xs text-gray-400">{e.cedula}{e.cargo ? ` · ${e.cargo}` : ''}</p>
                   </div>
-                  <button
-                    onClick={() => confirmarEliminarEmpleado(e)}
-                    className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition"
-                    title="Eliminar empleado"
-                  >
-                    <Trash2 size={15} />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setEditarEmpleado(e)}
+                      className="p-1.5 rounded-lg text-gray-300 hover:text-brand-600 hover:bg-brand-50 transition"
+                      title="Editar empleado"
+                    >
+                      <Pencil size={15} />
+                    </button>
+                    <button
+                      onClick={() => confirmarEliminarEmpleado(e)}
+                      className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition"
+                      title="Eliminar empleado"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -277,6 +288,14 @@ export default function AdminPanel() {
 
       {showRegistrar && (
         <RegistrarEmpleado onClose={() => setShowRegistrar(false)} onSaved={cargarEmpleados} />
+      )}
+
+      {editarEmpleado && (
+        <EditarEmpleado
+          empleado={editarEmpleado}
+          onClose={() => setEditarEmpleado(null)}
+          onSaved={() => { cargarEmpleados(); setEditarEmpleado(null) }}
+        />
       )}
 
       {modal && (
