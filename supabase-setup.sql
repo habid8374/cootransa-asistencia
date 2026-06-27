@@ -20,6 +20,7 @@ create table if not exists empleados (
 -- Si ya tienes la tabla creada, ejecuta estas migraciones:
 -- alter table empleados add column if not exists pin text;
 -- alter table empleados add column if not exists hora_entrada text;
+-- alter table empleados add column if not exists foto_url text;
 
 -- Tabla de marcaciones (entradas/salidas)
 create table if not exists marcaciones (
