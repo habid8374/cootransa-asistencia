@@ -47,13 +47,13 @@ export default function EditarEmpleado({
     e.preventDefault()
     if (pin && pin.length !== 4) { setMsg('El PIN debe tener exactamente 4 dígitos.'); return }
     setSaving(true)
-    const updates: Partial<Empleado> & { descriptor?: number[] | null } = {
+    const updates: Partial<Empleado> = {
       nombre,
       cedula,
       cargo: cargo || undefined,
       pin: pin || undefined,
     }
-    if (rostroCambiado) updates.descriptor = descriptor
+    if (rostroCambiado && descriptor) updates.descriptor = descriptor
     const { error } = await supabase.from('empleados').update(updates).eq('id', empleado.id)
     setSaving(false)
     if (error) { setMsg('Error al guardar: ' + error.message); return }
