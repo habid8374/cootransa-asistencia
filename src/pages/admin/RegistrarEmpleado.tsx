@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { loadModels, getDescriptor } from '../../lib/face'
 import { useCamera } from '../../hooks/useCamera'
-import { Camera, Loader2, CheckCircle2, X, Clock } from 'lucide-react'
+import { Camera, Loader2, CheckCircle2, X, LogIn, LogOut } from 'lucide-react'
 
 const INPUT = 'w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100'
 
@@ -22,6 +22,7 @@ export default function RegistrarEmpleado({ onClose, onSaved }: { onClose: () =>
   const [cargo, setCargo] = useState('')
   const [pin, setPin] = useState('')
   const [horaEntrada, setHoraEntrada] = useState('')
+  const [horaSalida, setHoraSalida] = useState('')
   const [descriptor, setDescriptor] = useState<number[] | null>(null)
   const [fotoUrl, setFotoUrl] = useState<string | null>(null)
   const [capturando, setCapturando] = useState(false)
@@ -47,11 +48,12 @@ export default function RegistrarEmpleado({ onClose, onSaved }: { onClose: () =>
     e.preventDefault()
     if (!descriptor) { setMsg('Debe capturar el rostro del empleado.'); return }
     if (pin && pin.length !== 4) { setMsg('El PIN debe tener exactamente 4 dígitos.'); return }
+    if (!horaEntrada || !horaSalida) { setMsg('La hora de entrada y salida son obligatorias.'); return }
     setSaving(true)
     const { error: err } = await supabase.from('empleados').insert({
       nombre, cedula, cargo: cargo || null, descriptor, activo: true,
+      hora_entrada: horaEntrada, hora_salida: horaSalida,
       ...(pin ? { pin } : {}),
-      ...(horaEntrada ? { hora_entrada: horaEntrada } : {}),
       ...(fotoUrl ? { foto_url: fotoUrl } : {}),
     })
     setSaving(false)
@@ -110,18 +112,33 @@ export default function RegistrarEmpleado({ onClose, onSaved }: { onClose: () =>
             <p className="text-xs text-gray-400 mt-1 pl-1">Se usa si el reconocimiento facial falla 3 veces seguidas.</p>
           </div>
 
-          <div>
-            <label className="text-xs font-semibold text-gray-500 mb-1 flex items-center gap-1.5">
-              <Clock size={12} /> Hora de entrada esperada (opcional)
-            </label>
-            <input
-              type="time"
-              value={horaEntrada}
-              onChange={e => setHoraEntrada(e.target.value)}
-              className={INPUT}
-            />
-            <p className="text-xs text-gray-400 mt-1 pl-1">Se usa para detectar tardanzas en el dashboard.</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-semibold text-gray-500 mb-1 flex items-center gap-1">
+                <LogIn size={11} /> Hora entrada <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="time"
+                value={horaEntrada}
+                onChange={e => setHoraEntrada(e.target.value)}
+                required
+                className={INPUT}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-500 mb-1 flex items-center gap-1">
+                <LogOut size={11} /> Hora salida <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="time"
+                value={horaSalida}
+                onChange={e => setHoraSalida(e.target.value)}
+                required
+                className={INPUT}
+              />
+            </div>
           </div>
+          <p className="text-xs text-gray-400 -mt-2 pl-1">Horario esperado para detectar tardanzas y salidas anticipadas.</p>
 
           {msg && <p className={`text-sm ${esError ? 'text-red-600' : 'text-brand-600'}`}>{msg}</p>}
           {error && <p className="text-sm text-red-600">{error}</p>}

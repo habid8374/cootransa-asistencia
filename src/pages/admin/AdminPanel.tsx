@@ -5,10 +5,11 @@ import EditarEmpleado from './EditarEmpleado'
 import Dashboard from './Dashboard'
 import Reportes from './Reportes'
 import ResumenMensual from './ResumenMensual'
+import Permisos from './Permisos'
 import Modal from '../../components/Modal'
-import { Users, ClipboardList, UserPlus, LogOut, Monitor, Trash2, Pencil, LayoutDashboard, BarChart3 } from 'lucide-react'
+import { Users, ClipboardList, UserPlus, LogOut, Monitor, Trash2, Pencil, LayoutDashboard, BarChart3, ShieldCheck } from 'lucide-react'
 
-type Tab = 'hoy' | 'empleados' | 'reportes' | 'mensual'
+type Tab = 'hoy' | 'empleados' | 'permisos' | 'reportes' | 'mensual'
 
 interface ModalState {
   title: string
@@ -49,6 +50,7 @@ export default function AdminPanel() {
   const tabs: { key: Tab; label: string; icon: React.ReactNode }[] = [
     { key: 'hoy', label: 'Hoy', icon: <LayoutDashboard size={15} /> },
     { key: 'empleados', label: 'Empleados', icon: <Users size={15} /> },
+    { key: 'permisos', label: 'Permisos', icon: <ShieldCheck size={15} /> },
     { key: 'reportes', label: 'Reportes', icon: <ClipboardList size={15} /> },
     { key: 'mensual', label: 'Mensual', icon: <BarChart3 size={15} /> },
   ]
@@ -155,6 +157,7 @@ export default function AdminPanel() {
           </>
         )}
 
+        {tab === 'permisos' && <Permisos />}
         {tab === 'reportes' && <Reportes />}
         {tab === 'mensual' && <ResumenMensual />}
       </div>

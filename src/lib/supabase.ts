@@ -13,7 +13,8 @@ export interface Empleado {
   foto_url?: string
   descriptor?: number[]
   pin?: string
-  hora_entrada?: string  // HH:MM expected arrival for tardanza detection
+  hora_entrada?: string  // HH:MM hora esperada de llegada
+  hora_salida?: string   // HH:MM hora esperada de salida
   activo: boolean
   created_at?: string
 }
@@ -24,4 +25,15 @@ export interface Marcacion {
   tipo: 'entrada' | 'salida'
   timestamp: string
   empleado?: Empleado
+}
+
+export interface Permiso {
+  id: string
+  empleado_id: string
+  nombre: string
+  fecha: string       // YYYY-MM-DD
+  hora_inicio?: string  // HH:MM — null = día completo
+  hora_fin?: string     // HH:MM — null = día completo
+  created_at?: string
+  empleado?: Pick<Empleado, 'nombre' | 'cedula'>
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { supabase, type Empleado, type Marcacion } from '../../lib/supabase'
+import { supabase, type Empleado, type Marcacion, type Permiso } from '../../lib/supabase'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface FilaEmpleado {
@@ -7,7 +7,21 @@ interface FilaEmpleado {
   diasTrabajados: number
   horasMs: number
   tardanzas: number
+  minutosTardanzaTotal: number
+  diasAnticipados: number
+  diasPermiso: number
   diasSinMarcar: number
+}
+
+function minsLate(ts: string, horaEsp: string): number {
+  const [hh, mm] = horaEsp.split(':').map(Number)
+  const esp = new Date(ts); esp.setHours(hh, mm, 0, 0)
+  return Math.max(0, Math.floor((new Date(ts).getTime() - esp.getTime()) / 60000))
+}
+function minsEarly(ts: string, horaEsp: string): number {
+  const [hh, mm] = horaEsp.split(':').map(Number)
+  const esp = new Date(ts); esp.setHours(hh, mm, 0, 0)
+  return Math.max(0, Math.floor((esp.getTime() - new Date(ts).getTime()) / 60000))
 }
 
 export default function ResumenMensual() {
@@ -22,56 +36,68 @@ export default function ResumenMensual() {
     setCargando(true)
     const inicio = new Date(año, mes, 1)
     const fin = new Date(año, mes + 1, 0, 23, 59, 59)
+    const inicioISO = inicio.toISOString().slice(0, 10)
+    const finISO = fin.toISOString().slice(0, 10)
 
-    // Count working days (Mon–Sat; Sunday = 0)
     let dias = 0
     for (let d = new Date(inicio); d <= fin; d.setDate(d.getDate() + 1)) {
       if (d.getDay() !== 0) dias++
     }
     setDiasHabiles(dias)
 
-    const [{ data: empleados }, { data: marcaciones }] = await Promise.all([
+    const [{ data: empleados }, { data: marcaciones }, { data: permisosMes }] = await Promise.all([
       supabase.from('empleados').select('*').eq('activo', true).order('nombre'),
       supabase.from('marcaciones').select('*')
-        .gte('timestamp', inicio.toISOString())
-        .lte('timestamp', fin.toISOString())
+        .gte('timestamp', inicio.toISOString()).lte('timestamp', fin.toISOString())
         .order('timestamp', { ascending: true }),
+      supabase.from('permisos').select('*').gte('fecha', inicioISO).lte('fecha', finISO),
     ])
 
     const emps = (empleados ?? []) as Empleado[]
     const marcas = (marcaciones ?? []) as Marcacion[]
+    const permisos = (permisosMes ?? []) as Permiso[]
 
     const result: FilaEmpleado[] = emps.map(emp => {
       const propias = marcas.filter(m => m.empleado_id === emp.id)
+      const permisosEmp = permisos.filter(p => p.empleado_id === emp.id)
 
       const porDia = propias.reduce<Record<string, Marcacion[]>>((acc, m) => {
         const dia = new Date(m.timestamp).toISOString().slice(0, 10)
-        ;(acc[dia] ??= []).push(m)
-        return acc
+        ;(acc[dia] ??= []).push(m); return acc
       }, {})
 
       const diasTrabajados = Object.keys(porDia).length
-      let horasMs = 0, tardanzas = 0
+      let horasMs = 0, tardanzas = 0, minutosTardanzaTotal = 0, diasAnticipados = 0
 
-      for (const lista of Object.values(porDia)) {
+      for (const [dia, lista] of Object.entries(porDia)) {
+        const tienePermiso = permisosEmp.some(p => p.fecha === dia)
         const ord = [...lista].sort((a, b) => a.timestamp.localeCompare(b.timestamp))
         let entrada: number | null = null
+        let tardanzaDia = false
+        let anticipadoDia = false
+
         for (const m of ord) {
           if (m.tipo === 'entrada') {
             entrada = new Date(m.timestamp).getTime()
-            if (emp.hora_entrada) {
-              const [hh, mm] = emp.hora_entrada.split(':').map(Number)
-              const esperada = new Date(m.timestamp); esperada.setHours(hh, mm, 0, 0)
-              if (new Date(m.timestamp) > esperada) tardanzas++
+            if (!tienePermiso && emp.hora_entrada) {
+              const mins = minsLate(m.timestamp, emp.hora_entrada)
+              if (mins > 0) { tardanzaDia = true; minutosTardanzaTotal += mins }
             }
-          } else if (m.tipo === 'salida' && entrada != null) {
-            horasMs += new Date(m.timestamp).getTime() - entrada
-            entrada = null
+          } else if (m.tipo === 'salida') {
+            if (entrada != null) { horasMs += new Date(m.timestamp).getTime() - entrada; entrada = null }
+            if (!tienePermiso && emp.hora_salida) {
+              if (minsEarly(m.timestamp, emp.hora_salida) > 0) anticipadoDia = true
+            }
           }
         }
+        if (tardanzaDia) tardanzas++
+        if (anticipadoDia) diasAnticipados++
       }
 
-      return { empleado: emp, diasTrabajados, horasMs, tardanzas, diasSinMarcar: Math.max(0, dias - diasTrabajados) }
+      const diasPermiso = permisosEmp.length
+      const diasAusenteReal = Math.max(0, dias - diasTrabajados - diasPermiso)
+
+      return { empleado: emp, diasTrabajados, horasMs, tardanzas, minutosTardanzaTotal, diasAnticipados, diasPermiso, diasSinMarcar: diasAusenteReal }
     })
 
     setFilas(result)
@@ -99,23 +125,15 @@ export default function ResumenMensual() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <button onClick={mesAnterior} className="p-1.5 rounded-lg hover:bg-gray-100 transition">
-            <ChevronLeft size={18} />
-          </button>
+          <button onClick={mesAnterior} className="p-1.5 rounded-lg hover:bg-gray-100 transition"><ChevronLeft size={18} /></button>
           <span className="text-sm font-semibold text-gray-900 capitalize w-44 text-center">{nombreMes}</span>
-          <button onClick={mesSiguiente} className="p-1.5 rounded-lg hover:bg-gray-100 transition">
-            <ChevronRight size={18} />
-          </button>
+          <button onClick={mesSiguiente} className="p-1.5 rounded-lg hover:bg-gray-100 transition"><ChevronRight size={18} /></button>
         </div>
         <span className="text-xs text-gray-400">{diasHabiles} días hábiles (Lun–Sáb)</span>
       </div>
 
       {cargando ? (
         <div className="py-12 text-center text-sm text-gray-400">Cargando...</div>
-      ) : filas.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-100 py-12 text-center text-sm text-gray-400">
-          No hay empleados activos.
-        </div>
       ) : (
         <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
           <div className="overflow-x-auto">
@@ -123,10 +141,13 @@ export default function ResumenMensual() {
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Empleado</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">Días trabajados</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">Horas totales</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">Tardanzas</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">Días sin marcar</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">Días trab.</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">Horas</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">Tard.</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">Min. tarde</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">S. antic.</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">Permisos</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">Sin marcar</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -142,35 +163,44 @@ export default function ResumenMensual() {
                           </div>
                         )}
                         <div>
-                          <p className="font-semibold text-gray-900">{f.empleado.nombre}</p>
-                          {f.empleado.hora_entrada && (
-                            <p className="text-xs text-gray-400">Entrada: {f.empleado.hora_entrada}</p>
+                          <p className="font-semibold text-gray-900 whitespace-nowrap">{f.empleado.nombre}</p>
+                          {f.empleado.hora_entrada && f.empleado.hora_salida && (
+                            <p className="text-xs text-gray-400">{f.empleado.hora_entrada} – {f.empleado.hora_salida}</p>
                           )}
                         </div>
                       </div>
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <span className={`font-semibold ${f.diasTrabajados === 0 ? 'text-red-500' : 'text-gray-900'}`}>
-                        {f.diasTrabajados}
-                      </span>
+                      <span className={`font-semibold ${f.diasTrabajados === 0 ? 'text-red-500' : 'text-gray-900'}`}>{f.diasTrabajados}</span>
                       <span className="text-gray-400">/{diasHabiles}</span>
                     </td>
-                    <td className="px-4 py-3 text-center text-gray-700">
+                    <td className="px-4 py-3 text-center text-gray-700 whitespace-nowrap">
                       {f.horasMs > 0 ? fmtHoras(f.horasMs) : <span className="text-gray-300">—</span>}
                     </td>
                     <td className="px-4 py-3 text-center">
-                      {f.tardanzas > 0 ? (
-                        <span className="text-xs font-semibold text-red-600 bg-red-50 px-2 py-0.5 rounded-full">{f.tardanzas}</span>
-                      ) : (
-                        <span className="text-gray-300">—</span>
-                      )}
+                      {f.tardanzas > 0
+                        ? <span className="text-xs font-semibold text-red-600 bg-red-50 px-2 py-0.5 rounded-full">{f.tardanzas}</span>
+                        : <span className="text-gray-300">—</span>}
                     </td>
                     <td className="px-4 py-3 text-center">
-                      {f.diasSinMarcar > 0 ? (
-                        <span className="text-xs font-semibold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full">{f.diasSinMarcar}</span>
-                      ) : (
-                        <span className="text-gray-300">—</span>
-                      )}
+                      {f.minutosTardanzaTotal > 0
+                        ? <span className="text-xs font-semibold text-red-600">{f.minutosTardanzaTotal}m</span>
+                        : <span className="text-gray-300">—</span>}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      {f.diasAnticipados > 0
+                        ? <span className="text-xs font-semibold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full">{f.diasAnticipados}</span>
+                        : <span className="text-gray-300">—</span>}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      {f.diasPermiso > 0
+                        ? <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">{f.diasPermiso}</span>
+                        : <span className="text-gray-300">—</span>}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      {f.diasSinMarcar > 0
+                        ? <span className="text-xs font-semibold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full">{f.diasSinMarcar}</span>
+                        : <span className="text-gray-300">—</span>}
                     </td>
                   </tr>
                 ))}
