@@ -2,17 +2,17 @@ import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { loadModels, getDescriptor } from '../../lib/face'
 import { useCamera } from '../../hooks/useCamera'
-import { Camera, Loader2, CheckCircle2, X, LogIn, LogOut } from 'lucide-react'
+import { Camera, Loader2, CheckCircle2, X, LogIn, LogOut, RefreshCw } from 'lucide-react'
 
 const INPUT = 'w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100'
 
 function capturarFoto(video: HTMLVideoElement): string {
   const canvas = document.createElement('canvas')
-  canvas.width = 160; canvas.height = 120
+  canvas.width = 320; canvas.height = 240
   const ctx = canvas.getContext('2d')!
   ctx.translate(canvas.width, 0); ctx.scale(-1, 1)
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
-  return canvas.toDataURL('image/jpeg', 0.65)
+  return canvas.toDataURL('image/jpeg', 0.75)
 }
 
 export default function RegistrarEmpleado({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
@@ -25,6 +25,7 @@ export default function RegistrarEmpleado({ onClose, onSaved }: { onClose: () =>
   const [horaSalida, setHoraSalida] = useState('')
   const [descriptor, setDescriptor] = useState<number[] | null>(null)
   const [fotoUrl, setFotoUrl] = useState<string | null>(null)
+  const [modoRecaptura, setModoRecaptura] = useState(false)
   const [capturando, setCapturando] = useState(false)
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState('')
@@ -37,9 +38,10 @@ export default function RegistrarEmpleado({ onClose, onSaved }: { onClose: () =>
     if (desc) {
       setDescriptor(Array.from(desc))
       setFotoUrl(capturarFoto(videoRef.current))
-      setMsg('Rostro capturado correctamente')
+      setModoRecaptura(false)
+      setMsg('Rostro y foto capturados correctamente.')
     } else {
-      setMsg('No se detectó ningún rostro. Intente de nuevo.')
+      setMsg('No se detectó ningún rostro. Ubíquese frente a la cámara e intente de nuevo.')
     }
     setCapturando(false)
   }
@@ -61,7 +63,8 @@ export default function RegistrarEmpleado({ onClose, onSaved }: { onClose: () =>
     onSaved(); onClose()
   }
 
-  const esError = msg.startsWith('Error') || msg.startsWith('No se') || msg.startsWith('El PIN') || msg.startsWith('Debe')
+  const esError = msg.startsWith('Error') || msg.startsWith('No se') || msg.startsWith('El PIN') || msg.startsWith('Debe') || msg.startsWith('La hora')
+  const mostrarVideo = !fotoUrl || modoRecaptura
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={onClose}>
@@ -70,29 +73,61 @@ export default function RegistrarEmpleado({ onClose, onSaved }: { onClose: () =>
           <h2 className="text-base font-bold text-gray-900">Registrar empleado</h2>
           <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100"><X size={18} /></button>
         </div>
+
         <form onSubmit={guardar} className="p-6 space-y-4">
-          {/* Camera */}
+          {/* Recuadro de cámara / foto */}
           <div className="relative aspect-[4/3] rounded-xl overflow-hidden bg-gray-900">
-            <video ref={videoRef} className="w-full h-full object-cover scale-x-[-1]" muted playsInline />
-            {fotoUrl && (
-              <div className="absolute top-2 right-2 bg-brand-600 text-white rounded-full p-1.5"><CheckCircle2 size={18} /></div>
+            {/* Video siempre en el DOM para mantener el stream activo */}
+            <video
+              ref={videoRef}
+              className={`w-full h-full object-cover scale-x-[-1] transition-opacity duration-300 ${mostrarVideo ? 'opacity-100' : 'opacity-0'}`}
+              muted playsInline
+            />
+
+            {/* Foto capturada como overlay */}
+            {fotoUrl && !modoRecaptura && (
+              <img
+                src={fotoUrl}
+                className="absolute inset-0 w-full h-full object-cover"
+                alt="Foto capturada"
+              />
+            )}
+
+            {/* Banner inferior cuando hay foto */}
+            {fotoUrl && !modoRecaptura && (
+              <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent pt-8 pb-3 px-4 flex items-center justify-center gap-2">
+                <CheckCircle2 size={15} className="text-brand-400 shrink-0" />
+                <span className="text-white text-sm font-semibold">Foto de perfil lista</span>
+              </div>
+            )}
+
+            {/* Instrucción cuando no hay foto */}
+            {!fotoUrl && !capturando && (
+              <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent pt-6 pb-3 px-4 text-center">
+                <span className="text-white/70 text-xs">Centre el rostro en el recuadro</span>
+              </div>
             )}
           </div>
-          <button
-            type="button"
-            onClick={capturar}
-            disabled={!ready || capturando}
-            className="w-full py-2.5 rounded-lg text-sm font-semibold text-brand-700 bg-brand-50 border border-brand-200 hover:bg-brand-100 transition flex items-center justify-center gap-2 disabled:opacity-60"
-          >
-            {capturando ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
-            {descriptor ? 'Volver a capturar rostro' : 'Capturar rostro'}
-          </button>
 
-          {fotoUrl && (
-            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-              <img src={fotoUrl} className="w-12 h-9 rounded object-cover border border-gray-200" alt="Foto" />
-              <p className="text-xs text-gray-500">Foto de perfil capturada</p>
-            </div>
+          {/* Botones de captura */}
+          {fotoUrl && !modoRecaptura ? (
+            <button
+              type="button"
+              onClick={() => setModoRecaptura(true)}
+              className="w-full py-2.5 rounded-lg text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 transition flex items-center justify-center gap-2"
+            >
+              <RefreshCw size={15} /> Recapturar foto
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={capturar}
+              disabled={!ready || capturando}
+              className="w-full py-2.5 rounded-lg text-sm font-semibold text-brand-700 bg-brand-50 border border-brand-200 hover:bg-brand-100 transition flex items-center justify-center gap-2 disabled:opacity-60"
+            >
+              {capturando ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
+              {capturando ? 'Detectando rostro...' : modoRecaptura ? 'Capturar de nuevo' : 'Capturar rostro y foto'}
+            </button>
           )}
 
           <input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Nombre completo" required className={INPUT} />
@@ -117,25 +152,13 @@ export default function RegistrarEmpleado({ onClose, onSaved }: { onClose: () =>
               <label className="text-xs font-semibold text-gray-500 mb-1 flex items-center gap-1">
                 <LogIn size={11} /> Hora entrada <span className="text-red-400">*</span>
               </label>
-              <input
-                type="time"
-                value={horaEntrada}
-                onChange={e => setHoraEntrada(e.target.value)}
-                required
-                className={INPUT}
-              />
+              <input type="time" value={horaEntrada} onChange={e => setHoraEntrada(e.target.value)} required className={INPUT} />
             </div>
             <div>
               <label className="text-xs font-semibold text-gray-500 mb-1 flex items-center gap-1">
                 <LogOut size={11} /> Hora salida <span className="text-red-400">*</span>
               </label>
-              <input
-                type="time"
-                value={horaSalida}
-                onChange={e => setHoraSalida(e.target.value)}
-                required
-                className={INPUT}
-              />
+              <input type="time" value={horaSalida} onChange={e => setHoraSalida(e.target.value)} required className={INPUT} />
             </div>
           </div>
           <p className="text-xs text-gray-400 -mt-2 pl-1">Horario esperado para detectar tardanzas y salidas anticipadas.</p>
