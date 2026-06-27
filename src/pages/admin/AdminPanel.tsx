@@ -80,7 +80,7 @@ export default function AdminPanel() {
       </header>
 
       <div className="max-w-5xl mx-auto px-4 py-6">
-        <div className="flex gap-1 mb-5 bg-gray-100 p-1 rounded-lg w-fit overflow-x-auto">
+        <div className="flex gap-1 mb-5 bg-gray-100 p-1 rounded-lg max-w-full overflow-x-auto">
           {tabs.map(t => (
             <button
               key={t.key}
