@@ -9,6 +9,7 @@ export default function RegistrarEmpleado({ onClose, onSaved }: { onClose: () =>
   const [nombre, setNombre] = useState('')
   const [cedula, setCedula] = useState('')
   const [cargo, setCargo] = useState('')
+  const [pin, setPin] = useState('')
   const [descriptor, setDescriptor] = useState<number[] | null>(null)
   const [capturando, setCapturando] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -31,9 +32,10 @@ export default function RegistrarEmpleado({ onClose, onSaved }: { onClose: () =>
   const guardar = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!descriptor) { setMsg('Debe capturar el rostro del empleado.'); return }
+    if (pin && pin.length !== 4) { setMsg('El PIN debe tener exactamente 4 dígitos.'); return }
     setSaving(true)
     const { error } = await supabase.from('empleados').insert({
-      nombre, cedula, cargo, descriptor, activo: true,
+      nombre, cedula, cargo, descriptor, activo: true, ...(pin ? { pin } : {}),
     })
     setSaving(false)
     if (error) { setMsg('Error al guardar: ' + error.message); return }
@@ -66,6 +68,18 @@ export default function RegistrarEmpleado({ onClose, onSaved }: { onClose: () =>
             className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" />
           <input value={cargo} onChange={e => setCargo(e.target.value)} placeholder="Cargo (opcional)"
             className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" />
+          <div>
+            <input
+              type="password"
+              inputMode="numeric"
+              maxLength={4}
+              value={pin}
+              onChange={e => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+              placeholder="PIN de 4 dígitos (respaldo facial)"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+            />
+            <p className="text-xs text-gray-400 mt-1 pl-1">Se usa si el reconocimiento facial falla 3 veces seguidas.</p>
+          </div>
 
           {msg && <p className={`text-sm ${descriptor ? 'text-brand-600' : 'text-red-600'}`}>{msg}</p>}
           {error && <p className="text-sm text-red-600">{error}</p>}

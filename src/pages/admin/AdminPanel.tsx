@@ -172,7 +172,13 @@ export default function AdminPanel() {
                     {e.nombre.slice(0, 2).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 truncate">{e.nombre}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-semibold text-gray-900 truncate">{e.nombre}</p>
+                      {e.pin
+                        ? <span className="text-[10px] font-semibold text-green-700 bg-green-50 px-1.5 py-0.5 rounded shrink-0">PIN ✓</span>
+                        : <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded shrink-0">Sin PIN</span>
+                      }
+                    </div>
                     <p className="text-xs text-gray-400">{e.cedula}{e.cargo ? ` · ${e.cargo}` : ''}</p>
                   </div>
                   <button
