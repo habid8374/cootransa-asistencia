@@ -9,6 +9,8 @@ interface FilaEmpleado {
   tardanzas: number
   minutosTardanzaTotal: number
   diasAnticipados: number
+  diasExtra: number
+  minutosExtraTotal: number
   diasPermiso: number
   diasSinMarcar: number
 }
@@ -67,7 +69,7 @@ export default function ResumenMensual() {
       }, {})
 
       const diasTrabajados = Object.keys(porDia).length
-      let horasMs = 0, tardanzas = 0, minutosTardanzaTotal = 0, diasAnticipados = 0
+      let horasMs = 0, tardanzas = 0, minutosTardanzaTotal = 0, diasAnticipados = 0, diasExtra = 0, minutosExtraTotal = 0
 
       for (const [dia, lista] of Object.entries(porDia)) {
         const tienePermiso = permisosEmp.some(p => p.fecha === dia)
@@ -75,6 +77,7 @@ export default function ResumenMensual() {
         let entrada: number | null = null
         let tardanzaDia = false
         let anticipadoDia = false
+        let extraMinsDia = 0
 
         for (const m of ord) {
           if (m.tipo === 'entrada') {
@@ -87,17 +90,20 @@ export default function ResumenMensual() {
             if (entrada != null) { horasMs += new Date(m.timestamp).getTime() - entrada; entrada = null }
             if (!tienePermiso && emp.hora_salida) {
               if (minsEarly(m.timestamp, emp.hora_salida) > 0) anticipadoDia = true
+              const extra = minsLate(m.timestamp, emp.hora_salida)
+              if (extra > 0) extraMinsDia = Math.max(extraMinsDia, extra)
             }
           }
         }
         if (tardanzaDia) tardanzas++
         if (anticipadoDia) diasAnticipados++
+        if (extraMinsDia > 0) { diasExtra++; minutosExtraTotal += extraMinsDia }
       }
 
       const diasPermiso = permisosEmp.length
       const diasAusenteReal = Math.max(0, dias - diasTrabajados - diasPermiso)
 
-      return { empleado: emp, diasTrabajados, horasMs, tardanzas, minutosTardanzaTotal, diasAnticipados, diasPermiso, diasSinMarcar: diasAusenteReal }
+      return { empleado: emp, diasTrabajados, horasMs, tardanzas, minutosTardanzaTotal, diasAnticipados, diasExtra, minutosExtraTotal, diasPermiso, diasSinMarcar: diasAusenteReal }
     })
 
     setFilas(result)
@@ -146,6 +152,7 @@ export default function ResumenMensual() {
                   <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">Tard.</th>
                   <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">Min. tarde</th>
                   <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">S. antic.</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">H. Extra</th>
                   <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">Permisos</th>
                   <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">Sin marcar</th>
                 </tr>
@@ -190,6 +197,11 @@ export default function ResumenMensual() {
                     <td className="px-4 py-3 text-center">
                       {f.diasAnticipados > 0
                         ? <span className="text-xs font-semibold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full">{f.diasAnticipados}</span>
+                        : <span className="text-gray-300">—</span>}
+                    </td>
+                    <td className="px-4 py-3 text-center whitespace-nowrap">
+                      {f.minutosExtraTotal > 0
+                        ? <span className="text-xs font-semibold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full">{f.minutosExtraTotal}m</span>
                         : <span className="text-gray-300">—</span>}
                     </td>
                     <td className="px-4 py-3 text-center">
