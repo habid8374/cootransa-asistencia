@@ -5,12 +5,32 @@ import type { Session } from '@supabase/supabase-js'
 import Terminal from './pages/Terminal'
 import Login from './pages/Login'
 import AdminPanel from './pages/admin/AdminPanel'
+import TiquetesAdminPanel from './pages/admin/TiquetesAdminPanel'
 import TiquetesHome from './pages/tiquetes/TiquetesHome'
 import BuscarViajes from './pages/tiquetes/BuscarViajes'
 import Checkout from './pages/tiquetes/Checkout'
 import MiTiquete from './pages/tiquetes/MiTiquete'
 import MisTiquetes from './pages/tiquetes/MisTiquetes'
 import ValidarQR from './pages/conductor/ValidarQR'
+
+function TiquetesAdminGate() {
+  const [session, setSession] = useState<Session | null | undefined>(undefined)
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setSession(data.session))
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => setSession(s))
+    return () => subscription.unsubscribe()
+  }, [])
+
+  if (session === undefined) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="w-8 h-8 rounded-full border-2 border-brand-500 border-t-transparent animate-spin" />
+      </div>
+    )
+  }
+  return session ? <TiquetesAdminPanel /> : <Login />
+}
 
 function AdminGate() {
   const [session, setSession] = useState<Session | null | undefined>(undefined)
@@ -38,6 +58,7 @@ export default function App() {
         <Route path="/" element={<Navigate to="/admin" replace />} />
         <Route path="/kiosco" element={<Terminal />} />
         <Route path="/admin" element={<AdminGate />} />
+        <Route path="/tiquetes/admin" element={<TiquetesAdminGate />} />
         <Route path="/tiquetes" element={<TiquetesHome />} />
         <Route path="/tiquetes/viajes" element={<BuscarViajes />} />
         <Route path="/tiquetes/checkout" element={<Checkout />} />
