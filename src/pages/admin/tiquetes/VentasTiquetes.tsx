@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { supabase, type Tiquete } from '../../../lib/supabase'
-import { Ticket, TrendingUp, Users, CheckCircle2 } from 'lucide-react'
+import { Ticket, TrendingUp, Users, CheckCircle2, XCircle, AlertCircle } from 'lucide-react'
+
+type ToastTipo = 'ok' | 'error' | 'info'
+interface Toast { msg: string; tipo: ToastTipo }
 
 const ESTADO_COLORS: Record<string, string> = {
   pendiente:   'text-orange-700 bg-orange-50',
@@ -21,6 +24,12 @@ export default function VentasTiquetes() {
   const [desde, setDesde] = useState(new Date().toISOString().slice(0, 10))
   const [hasta, setHasta] = useState(new Date().toISOString().slice(0, 10))
   const [cargando, setCargando] = useState(false)
+  const [toast, setToast] = useState<Toast | null>(null)
+
+  const mostrarToast = (msg: string, tipo: ToastTipo = 'ok') => {
+    setToast({ msg, tipo })
+    setTimeout(() => setToast(null), 3500)
+  }
 
   const cargar = async () => {
     setCargando(true)
@@ -42,33 +51,42 @@ export default function VentasTiquetes() {
   const pendientes = tiquetes.filter(t => t.estado === 'pendiente').length
 
   const cancelar = async (id: string) => {
-    await supabase.from('tiquetes').update({ estado: 'cancelado' }).eq('id', id)
+    const { error } = await supabase.from('tiquetes').update({ estado: 'cancelado' }).eq('id', id)
+    if (error) { mostrarToast('Error al cancelar el tiquete', 'error'); return }
+    mostrarToast('Tiquete cancelado', 'info')
     cargar()
   }
 
   const confirmar = async (id: string) => {
-    await supabase.from('tiquetes').update({ estado: 'confirmado' }).eq('id', id)
+    const { error } = await supabase.from('tiquetes').update({ estado: 'confirmado' }).eq('id', id)
+    if (error) { mostrarToast('Error al confirmar el tiquete', 'error'); return }
+    mostrarToast('Tiquete confirmado ✓')
     cargar()
   }
 
   const reactivar = async (id: string) => {
-    await supabase.from('tiquetes').update({ estado: 'confirmado' }).eq('id', id)
+    const { error } = await supabase.from('tiquetes').update({ estado: 'confirmado' }).eq('id', id)
+    if (error) { mostrarToast('Error al reactivar el tiquete', 'error'); return }
+    mostrarToast('Tiquete reactivado ✓')
     cargar()
   }
 
   const eliminar = async (t: Tiquete) => {
-    await supabase.from('tiquetes').delete().eq('id', t.id)
+    const { error } = await supabase.from('tiquetes').delete().eq('id', t.id)
+    if (error) { mostrarToast('Error al eliminar el tiquete', 'error'); return }
     // Devolver el cupo al viaje
     if (t.viaje_id) {
       const { data: v } = await supabase.from('viajes').select('capacidad_disponible').eq('id', t.viaje_id).single()
       if (v) await supabase.from('viajes').update({ capacidad_disponible: v.capacidad_disponible + 1 }).eq('id', t.viaje_id)
     }
+    mostrarToast('Tiquete eliminado — cupo liberado')
     cargar()
   }
 
   const fmtFecha = (iso: string) => new Date(iso).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })
 
   return (
+    <>
     <div className="space-y-4">
       {/* Filtros */}
       <div className="flex items-center gap-2 flex-wrap">
@@ -176,5 +194,20 @@ export default function VentasTiquetes() {
         )}
       </div>
     </div>
+
+    {/* Toast de notificación */}
+    {toast && (
+      <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 px-5 py-3.5 rounded-2xl shadow-2xl text-sm font-semibold animate-fade-in whitespace-nowrap ${
+        toast.tipo === 'ok'    ? 'bg-gray-900 text-white' :
+        toast.tipo === 'error' ? 'bg-red-600 text-white'  :
+                                  'bg-blue-600 text-white'
+      }`}>
+        {toast.tipo === 'ok'    && <CheckCircle2 size={16} className="shrink-0" />}
+        {toast.tipo === 'error' && <XCircle size={16} className="shrink-0" />}
+        {toast.tipo === 'info'  && <AlertCircle size={16} className="shrink-0" />}
+        {toast.msg}
+      </div>
+    )}
+    </>
   )
 }

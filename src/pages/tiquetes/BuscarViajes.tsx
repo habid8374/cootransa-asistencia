@@ -26,16 +26,19 @@ export default function BuscarViajes() {
         .gt('capacidad_disponible', 0)
         .order('hora_salida')
 
+      const norm = (s: string) => s.trim().toLowerCase()
+      const o = norm(origen)
+      const d = norm(destino)
+
       const todos = (data as Viaje[]) ?? []
       const filtrados = todos.filter(v => {
         const r = v.ruta
         if (!r) return false
-        // Direct route match
-        if (r.origen === origen && r.destino === destino) return true
-        // Multi-stop line: both stops present in the correct order
+        if (norm(r.origen) === o && norm(r.destino) === d) return true
         if (r.paradas && r.paradas.length >= 2) {
-          const i = r.paradas.indexOf(origen)
-          const j = r.paradas.indexOf(destino)
+          const ps = r.paradas.map(norm)
+          const i = ps.indexOf(o)
+          const j = ps.indexOf(d)
           return i >= 0 && j >= 0 && i < j
         }
         return false
