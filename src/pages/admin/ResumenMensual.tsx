@@ -129,13 +129,15 @@ export default function ResumenMensual() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col items-center gap-1.5">
         <div className="flex items-center gap-2">
           <button onClick={mesAnterior} className="p-1.5 rounded-lg hover:bg-gray-100 transition"><ChevronLeft size={18} /></button>
           <span className="text-sm font-semibold text-gray-900 capitalize w-44 text-center">{nombreMes}</span>
           <button onClick={mesSiguiente} className="p-1.5 rounded-lg hover:bg-gray-100 transition"><ChevronRight size={18} /></button>
         </div>
-        <span className="text-xs text-gray-400">{diasHabiles} días hábiles (Lun–Sáb)</span>
+        <span className="text-xs font-medium text-gray-400 bg-gray-100 px-3 py-1 rounded-full">
+          {diasHabiles} días hábiles · Lun–Sáb
+        </span>
       </div>
 
       {cargando ? (
