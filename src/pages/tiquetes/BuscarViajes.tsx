@@ -17,16 +17,31 @@ export default function BuscarViajes() {
     if (!origen || !destino || !fecha) return
     const cargar = async () => {
       setCargando(true)
+      // Fetch all trips for this date and filter client-side to support multi-stop lines
       const { data } = await supabase
         .from('viajes')
-        .select('*, ruta:rutas!inner(origen, destino, duracion_min), bus:buses(nombre, placa, capacidad)')
-        .eq('ruta.origen', origen)
-        .eq('ruta.destino', destino)
+        .select('*, ruta:rutas(*), bus:buses(nombre, placa, capacidad)')
         .eq('fecha', fecha)
         .eq('estado', 'programado')
         .gt('capacidad_disponible', 0)
         .order('hora_salida')
-      setViajes((data as Viaje[]) ?? [])
+
+      const todos = (data as Viaje[]) ?? []
+      const filtrados = todos.filter(v => {
+        const r = v.ruta
+        if (!r) return false
+        // Direct route match
+        if (r.origen === origen && r.destino === destino) return true
+        // Multi-stop line: both stops present in the correct order
+        if (r.paradas && r.paradas.length >= 2) {
+          const i = r.paradas.indexOf(origen)
+          const j = r.paradas.indexOf(destino)
+          return i >= 0 && j >= 0 && i < j
+        }
+        return false
+      })
+
+      setViajes(filtrados)
       setCargando(false)
     }
     cargar()
@@ -44,7 +59,6 @@ export default function BuscarViajes() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <div className="bg-brand-600 px-4 pt-4 pb-8">
         <div className="max-w-lg mx-auto">
           <Link to="/tiquetes" className="flex items-center gap-1.5 text-brand-200 text-sm mb-4 hover:text-white transition">
@@ -60,7 +74,6 @@ export default function BuscarViajes() {
         </div>
       </div>
 
-      {/* Results */}
       <div className="max-w-lg mx-auto px-4 -mt-4">
         {cargando ? (
           <div className="bg-white rounded-2xl shadow p-8 text-center">
@@ -84,7 +97,9 @@ export default function BuscarViajes() {
             {viajes.map(v => (
               <button
                 key={v.id}
-                onClick={() => navigate(`/tiquetes/checkout?viaje_id=${v.id}`)}
+                onClick={() => navigate(
+                  `/tiquetes/checkout?viaje_id=${v.id}&desde=${encodeURIComponent(origen)}&hasta=${encodeURIComponent(destino)}`
+                )}
                 className="w-full bg-white rounded-2xl shadow-sm border border-gray-100 p-4 text-left hover:border-brand-200 hover:shadow-md transition"
               >
                 <div className="flex items-start justify-between">
@@ -98,13 +113,18 @@ export default function BuscarViajes() {
                   </div>
                   <div className="text-right">
                     <p className="text-xl font-bold text-brand-600">${v.precio.toLocaleString('es-CO')}</p>
-                    <p className="text-xs text-gray-400">por persona</p>
+                    <p className="text-xs text-gray-400">base por persona</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 mt-3 pt-3 border-t border-gray-50">
                   {v.bus && (
                     <span className="text-xs text-gray-500 flex items-center gap-1">
                       <Bus size={11} /> {v.bus.nombre || v.bus.placa}
+                    </span>
+                  )}
+                  {v.ruta?.paradas && v.ruta.paradas.length >= 2 && (
+                    <span className="text-[10px] font-semibold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">
+                      Línea con {v.ruta.paradas.length} paradas
                     </span>
                   )}
                   <span className="text-xs text-gray-500 flex items-center gap-1 ml-auto">

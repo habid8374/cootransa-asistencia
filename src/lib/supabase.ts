@@ -88,7 +88,17 @@ export interface Ruta {
   destino: string
   precio_base: number
   duracion_min?: number
+  paradas?: string[]   // stops in order for multi-stop lines
   activa: boolean
+  created_at?: string
+}
+
+export interface TarifaSegmento {
+  id: string
+  ruta_id: string
+  origen: string
+  destino: string
+  precio: number
   created_at?: string
 }
 
@@ -132,6 +142,8 @@ export interface Tiquete {
   estado: 'pendiente' | 'confirmado' | 'usado' | 'cancelado'
   metodo_pago?: 'nequi' | 'daviplata' | 'pse' | 'tarjeta' | 'taquilla'
   referencia_pago?: string
+  parada_origen?: string
+  parada_destino?: string
   usado_at?: string
   created_at?: string
   viaje?: Viaje

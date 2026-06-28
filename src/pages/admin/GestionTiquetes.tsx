@@ -1,17 +1,19 @@
 import { useState } from 'react'
-import { MapPin, Bus, CalendarDays, BarChart3 } from 'lucide-react'
+import { MapPin, Bus, CalendarDays, BarChart3, DollarSign } from 'lucide-react'
 import GestionRutas from './tiquetes/GestionRutas'
+import GestionTarifas from './tiquetes/GestionTarifas'
 import GestionBuses from './tiquetes/GestionBuses'
 import GestionViajes from './tiquetes/GestionViajes'
 import VentasTiquetes from './tiquetes/VentasTiquetes'
 
-type Sub = 'rutas' | 'buses' | 'viajes' | 'ventas'
+type Sub = 'rutas' | 'tarifas' | 'buses' | 'viajes' | 'ventas'
 
 const TABS: { key: Sub; label: string; icon: React.ReactNode }[] = [
-  { key: 'rutas',  label: 'Rutas',    icon: <MapPin size={14} /> },
-  { key: 'buses',  label: 'Flota',    icon: <Bus size={14} /> },
-  { key: 'viajes', label: 'Viajes',   icon: <CalendarDays size={14} /> },
-  { key: 'ventas', label: 'Ventas',   icon: <BarChart3 size={14} /> },
+  { key: 'rutas',   label: 'Líneas',   icon: <MapPin size={14} /> },
+  { key: 'tarifas', label: 'Tarifas',  icon: <DollarSign size={14} /> },
+  { key: 'buses',   label: 'Flota',    icon: <Bus size={14} /> },
+  { key: 'viajes',  label: 'Viajes',   icon: <CalendarDays size={14} /> },
+  { key: 'ventas',  label: 'Ventas',   icon: <BarChart3 size={14} /> },
 ]
 
 export default function GestionTiquetes() {
@@ -19,7 +21,7 @@ export default function GestionTiquetes() {
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-1 bg-gray-100 p-1 rounded-lg w-fit">
+      <div className="flex gap-1 bg-gray-100 p-1 rounded-lg w-fit flex-wrap">
         {TABS.map(t => (
           <button
             key={t.key}
@@ -33,10 +35,11 @@ export default function GestionTiquetes() {
         ))}
       </div>
 
-      {sub === 'rutas'  && <GestionRutas />}
-      {sub === 'buses'  && <GestionBuses />}
-      {sub === 'viajes' && <GestionViajes />}
-      {sub === 'ventas' && <VentasTiquetes />}
+      {sub === 'rutas'   && <GestionRutas />}
+      {sub === 'tarifas' && <GestionTarifas />}
+      {sub === 'buses'   && <GestionBuses />}
+      {sub === 'viajes'  && <GestionViajes />}
+      {sub === 'ventas'  && <VentasTiquetes />}
     </div>
   )
 }

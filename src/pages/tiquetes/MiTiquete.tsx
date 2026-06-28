@@ -121,8 +121,13 @@ export default function MiTiquete() {
               <div>
                 <p className="text-brand-200 text-xs font-semibold">COOTRANSA</p>
                 <p className="text-white font-bold text-lg mt-0.5">
-                  {v?.ruta?.origen} → {v?.ruta?.destino}
+                  {tiquete.parada_origen ?? v?.ruta?.origen} → {tiquete.parada_destino ?? v?.ruta?.destino}
                 </p>
+                {tiquete.parada_origen && (
+                  <p className="text-brand-300 text-[10px] mt-0.5">
+                    Línea {v?.ruta?.origen} → {v?.ruta?.destino}
+                  </p>
+                )}
               </div>
               <span className={`text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1 ${est.color}`}>
                 {est.icon} {est.label}

@@ -272,3 +272,34 @@ create policy "admin gestiona tiquetes"  on tiquetes  for all using (auth.role()
 -- ============================================================
 -- LISTO. Crea tu usuario admin en Supabase → Authentication → Add user
 -- ============================================================
+
+-- ============================================================
+-- MIGRACIÓN MULTI-PARADAS
+-- Ejecutar si el módulo de tiquetes ya existe en tu base de datos
+-- ============================================================
+
+-- Columna de paradas en rutas (array JSONB ordenado de paradas)
+alter table rutas add column if not exists paradas jsonb;
+
+-- Tabla de tarifas por segmento (precio distinto para cada tramo de la línea)
+create table if not exists tarifas_segmento (
+  id uuid primary key default gen_random_uuid(),
+  ruta_id uuid not null references rutas(id) on delete cascade,
+  origen text not null,
+  destino text not null,
+  precio numeric(10,2) not null,
+  created_at timestamptz default now(),
+  unique(ruta_id, origen, destino)
+);
+
+create index if not exists idx_tarifas_ruta on tarifas_segmento(ruta_id);
+
+-- Parada específica del pasajero en el tiquete
+alter table tiquetes add column if not exists parada_origen text;
+alter table tiquetes add column if not exists parada_destino text;
+
+-- RLS para tarifas_segmento
+alter table tarifas_segmento enable row level security;
+create policy "lectura tarifas_segmento" on tarifas_segmento for select using (true);
+create policy "admin gestiona tarifas_segmento" on tarifas_segmento
+  for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
