@@ -1,6 +1,7 @@
-const PUBLIC_KEY = 'pub_test_8jCNwqZBlbXrqZ8RpmY4bdhYbsoKhUCb'
-const INTEGRITY_SECRET = 'test_integrity_6nqXB7Mo7HsgvuGaOxVhFMylzwOMPSWh'
-const SANDBOX_API = 'https://sandbox.wompi.co/v1'
+const PUBLIC_KEY = import.meta.env.VITE_WOMPI_PUBLIC_KEY as string
+const INTEGRITY_SECRET = import.meta.env.VITE_WOMPI_INTEGRITY_SECRET as string
+const IS_TEST = PUBLIC_KEY?.startsWith('pub_test_')
+const WOMPI_API = IS_TEST ? 'https://sandbox.wompi.co/v1' : 'https://production.wompi.co/v1'
 
 export async function firmaIntegridad(reference: string, amountInCents: number): Promise<string> {
   const text = `${reference}${amountInCents}COP${INTEGRITY_SECRET}`
@@ -24,7 +25,7 @@ export async function urlCheckout(reference: string, amountInCents: number, redi
 
 export async function verificarTransaccion(transactionId: string): Promise<{ status: string; amountInCents: number; reference: string } | null> {
   try {
-    const res = await fetch(`${SANDBOX_API}/transactions/${transactionId}`)
+    const res = await fetch(`${WOMPI_API}/transactions/${transactionId}`)
     if (!res.ok) return null
     const json = await res.json()
     return {
