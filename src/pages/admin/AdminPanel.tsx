@@ -191,51 +191,58 @@ export default function AdminPanel() {
                   {empleados.filter(e => e.activo || mostrarInactivos).length === 0 ? (
                     <p className="text-center text-sm text-gray-400 py-12">Aún no hay empleados registrados.</p>
                   ) : empleados.filter(e => e.activo || mostrarInactivos).map(e => (
-                    <div key={e.id} className={`flex items-center gap-3 px-5 py-3.5 transition ${!e.activo ? 'opacity-50' : ''}`}>
-                      <div className="shrink-0 relative">
-                        {e.foto_url ? (
-                          <img src={e.foto_url} className="w-9 h-9 rounded-full object-cover" alt={e.nombre} />
-                        ) : (
-                          <div className="w-9 h-9 rounded-full bg-brand-600 text-white flex items-center justify-center text-xs font-bold">
-                            {e.nombre.slice(0, 2).toUpperCase()}
-                          </div>
-                        )}
-                        {!e.activo && (
-                          <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-gray-400 rounded-full border-2 border-white flex items-center justify-center">
-                            <Power size={7} className="text-white" />
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <p className="text-sm font-semibold text-gray-900 truncate">{e.nombre}</p>
-                          {!e.activo
-                            ? <span className="text-[10px] font-semibold text-gray-500 bg-gray-200 px-1.5 py-0.5 rounded shrink-0">Inactivo</span>
-                            : e.pin
-                            ? <span className="text-[10px] font-semibold text-green-700 bg-green-50 px-1.5 py-0.5 rounded shrink-0">PIN ✓</span>
-                            : <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded shrink-0">Sin PIN</span>
-                          }
+                    <div key={e.id} className={`px-4 py-4 transition ${!e.activo ? 'opacity-50' : ''}`}>
+                      {/* Fila superior: avatar + info + botones */}
+                      <div className="flex items-center gap-3">
+                        <div className="shrink-0 relative">
+                          {e.foto_url ? (
+                            <img src={e.foto_url} className="w-11 h-11 rounded-full object-cover" alt={e.nombre} />
+                          ) : (
+                            <div className="w-11 h-11 rounded-full bg-brand-600 text-white flex items-center justify-center text-sm font-bold">
+                              {e.nombre.slice(0, 2).toUpperCase()}
+                            </div>
+                          )}
+                          {!e.activo && (
+                            <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-gray-400 rounded-full border-2 border-white flex items-center justify-center">
+                              <Power size={8} className="text-white" />
+                            </span>
+                          )}
                         </div>
-                        <p className="text-xs text-gray-400">
-                          {e.cedula}{e.cargo ? ` · ${e.cargo}` : ''}{e.hora_entrada ? ` · Entrada: ${e.hora_entrada}` : ''}
-                        </p>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="text-sm font-semibold text-gray-900">{e.nombre}</p>
+                            {!e.activo
+                              ? <span className="text-[10px] font-semibold text-gray-500 bg-gray-200 px-1.5 py-0.5 rounded shrink-0">Inactivo</span>
+                              : e.pin
+                              ? <span className="text-[10px] font-semibold text-green-700 bg-green-50 px-1.5 py-0.5 rounded shrink-0">PIN ✓</span>
+                              : <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded shrink-0">Sin PIN</span>
+                            }
+                          </div>
+                          <p className="text-xs text-gray-400 mt-0.5">{e.cedula}</p>
+                          {(e.cargo || e.hora_entrada) && (
+                            <p className="text-xs text-gray-400">
+                              {e.cargo}{e.hora_entrada ? ` · Entrada: ${e.hora_entrada}` : ''}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <button onClick={() => setHistorialEmpleado(e)} className="p-1.5 rounded-lg text-gray-300 hover:text-blue-500 hover:bg-blue-50 transition" title="Ver historial">
-                          <History size={15} />
+                      {/* Fila de botones — separada para tap targets grandes en móvil */}
+                      <div className="flex items-center gap-1 mt-3 pl-14">
+                        <button onClick={() => setHistorialEmpleado(e)} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium text-gray-500 hover:text-blue-600 hover:bg-blue-50 transition" title="Ver historial">
+                          <History size={14} /> <span>Historial</span>
                         </button>
-                        <button onClick={() => setEditarEmpleado(e)} className="p-1.5 rounded-lg text-gray-300 hover:text-brand-600 hover:bg-brand-50 transition" title="Editar empleado">
-                          <Pencil size={15} />
+                        <button onClick={() => setEditarEmpleado(e)} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium text-gray-500 hover:text-brand-600 hover:bg-brand-50 transition" title="Editar empleado">
+                          <Pencil size={14} /> <span>Editar</span>
                         </button>
                         <button
                           onClick={() => confirmarToggleActivo(e)}
-                          className={`p-1.5 rounded-lg transition ${e.activo ? 'text-gray-300 hover:text-orange-500 hover:bg-orange-50' : 'text-green-400 hover:text-green-600 hover:bg-green-50'}`}
-                          title={e.activo ? 'Desactivar empleado' : 'Reactivar empleado'}
+                          className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition ${e.activo ? 'text-gray-500 hover:text-orange-500 hover:bg-orange-50' : 'text-green-500 hover:text-green-700 hover:bg-green-50'}`}
+                          title={e.activo ? 'Desactivar' : 'Reactivar'}
                         >
-                          <Power size={15} />
+                          <Power size={14} /> <span>{e.activo ? 'Desactivar' : 'Reactivar'}</span>
                         </button>
-                        <button onClick={() => confirmarEliminarEmpleado(e)} className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition" title="Eliminar empleado">
-                          <Trash2 size={15} />
+                        <button onClick={() => confirmarEliminarEmpleado(e)} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium text-gray-500 hover:text-red-500 hover:bg-red-50 transition" title="Eliminar empleado">
+                          <Trash2 size={14} /> <span>Eliminar</span>
                         </button>
                       </div>
                     </div>
