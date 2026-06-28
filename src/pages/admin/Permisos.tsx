@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase, type Empleado, type Permiso } from '../../lib/supabase'
 import Modal from '../../components/Modal'
-import { Plus, Trash2, ShieldCheck, X, Search } from 'lucide-react'
+import { Plus, Trash2, ShieldCheck, X, Search, Pencil } from 'lucide-react'
 
 const INPUT = 'w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100'
 
@@ -28,6 +28,7 @@ export default function Permisos() {
   const [permisos, setPermisos] = useState<Permiso[]>([])
   const [empleados, setEmpleados] = useState<Empleado[]>([])
   const [showForm, setShowForm] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [modal, setModal] = useState<ModalState | null>(null)
   const [busqueda, setBusqueda] = useState('')
 
@@ -78,13 +79,16 @@ export default function Permisos() {
 
     const horas = horasParaTipo(tipo, empSeleccionado)
     setGuardando(true)
-    const { error } = await supabase.from('permisos').insert({
+    const payload = {
       empleado_id: empId,
       nombre: nombreFinal,
       fecha,
       hora_inicio: horas.inicio ?? null,
       hora_fin: horas.fin ?? null,
-    })
+    }
+    const { error } = editingId
+      ? await supabase.from('permisos').update(payload).eq('id', editingId)
+      : await supabase.from('permisos').insert(payload)
     setGuardando(false)
     if (error) { setFormMsg('Error al guardar: ' + error.message); return }
     setShowForm(false)
@@ -93,10 +97,30 @@ export default function Permisos() {
   }
 
   const resetForm = () => {
+    setEditingId(null)
     setEmpId(''); setEmpBusq(''); setNombre(''); setNombreCustom('')
     setFecha(new Date().toISOString().slice(0, 10))
     setTipo('dia_completo'); setHoraInicio('08:00'); setHoraFin('12:00')
     setFormMsg('')
+  }
+
+  const abrirEditar = (p: Permiso) => {
+    setEditingId(p.id)
+    setEmpId(p.empleado_id)
+    setEmpBusq((p.empleado as any)?.nombre ?? '')
+    const enLista = NOMBRES_COMUNES.includes(p.nombre)
+    setNombre(enLista ? p.nombre : 'Otro')
+    setNombreCustom(enLista ? '' : p.nombre)
+    setFecha(p.fecha)
+    if (!p.hora_inicio) {
+      setTipo('dia_completo')
+    } else {
+      setTipo('personalizado')
+      setHoraInicio(p.hora_inicio.slice(0, 5))
+      setHoraFin(p.hora_fin?.slice(0, 5) ?? '17:00')
+    }
+    setFormMsg('')
+    setShowForm(true)
   }
 
   const confirmarEliminar = (p: Permiso) => {
@@ -182,13 +206,22 @@ export default function Permisos() {
                           </span>
                         </div>
                       </div>
-                      <button
-                        onClick={() => confirmarEliminar(p)}
-                        className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition shrink-0"
-                        title="Eliminar permiso"
-                      >
-                        <Trash2 size={15} />
-                      </button>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          onClick={() => abrirEditar(p)}
+                          className="p-1.5 rounded-lg text-gray-300 hover:text-brand-600 hover:bg-brand-50 transition"
+                          title="Editar permiso"
+                        >
+                          <Pencil size={15} />
+                        </button>
+                        <button
+                          onClick={() => confirmarEliminar(p)}
+                          className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition"
+                          title="Eliminar permiso"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
                     </div>
                   )
                 })}
@@ -207,7 +240,7 @@ export default function Permisos() {
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-gray-100">
-              <h2 className="text-base font-bold text-gray-900">Crear permiso</h2>
+              <h2 className="text-base font-bold text-gray-900">{editingId ? 'Editar permiso' : 'Crear permiso'}</h2>
               <button onClick={() => setShowForm(false)} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100">
                 <X size={18} />
               </button>
@@ -335,7 +368,7 @@ export default function Permisos() {
                 disabled={guardando}
                 className="w-full py-2.5 rounded-lg text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 transition disabled:opacity-60"
               >
-                {guardando ? 'Guardando...' : 'Guardar permiso'}
+                {guardando ? 'Guardando...' : editingId ? 'Guardar cambios' : 'Guardar permiso'}
               </button>
             </form>
           </div>
