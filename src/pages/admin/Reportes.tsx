@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase, type Marcacion, type Permiso } from '../../lib/supabase'
 import Modal from '../../components/Modal'
-import { Download, FileText, Trash2, AlertTriangle, ShieldCheck, Clock, Zap } from 'lucide-react'
+import { Download, FileText, Trash2, AlertTriangle, ShieldCheck, Clock, Zap, ChevronDown } from 'lucide-react'
 
 interface ModalState {
   title: string; message: string; variant?: 'danger'; confirmLabel?: string; onConfirm: () => void
@@ -24,6 +24,10 @@ export default function Reportes() {
   const [marcaciones, setMarcaciones] = useState<MarcacionExt[]>([])
   const [permisos, setPermisos] = useState<Permiso[]>([])
   const [modal, setModal] = useState<ModalState | null>(null)
+  const [expandidos, setExpandidos] = useState<Set<string>>(new Set())
+
+  const toggleExpandido = (key: string) =>
+    setExpandidos(prev => { const s = new Set(prev); s.has(key) ? s.delete(key) : s.add(key); return s })
 
   const hoy = new Date().toISOString().slice(0, 10)
   const hace30 = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString().slice(0, 10)
@@ -220,65 +224,107 @@ export default function Reportes() {
                 </h3>
                 <div className="bg-white rounded-xl border border-gray-100 overflow-hidden divide-y divide-gray-50">
                   {Object.entries(porEmpleado).map(([nombre, { marcas, id }]) => {
+                    const key = `${dia}-${id}`
+                    const abierto = expandidos.has(key)
                     const ordenado = [...marcas].sort((a, b) => a.timestamp.localeCompare(b.timestamp))
                     const horas = horasDelDia(marcas)
                     const permisoDia = getPermiso(id, dia)
+                    const hayTardanza = ordenado.some(m => tardanzaMins(m) > 0)
+                    const hayExtra = ordenado.some(m => extraMins(m) > 0)
                     return (
-                      <div key={nombre} className="px-4 sm:px-5 py-3.5">
-                        <div className="flex items-center justify-between mb-2 gap-2">
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <div className="w-8 h-8 rounded-full bg-brand-600 text-white flex items-center justify-center text-[11px] font-bold shrink-0">
-                              {nombre.slice(0, 2).toUpperCase()}
-                            </div>
-                            <div className="min-w-0">
-                              <span className="text-sm font-semibold text-gray-900 truncate block">{nombre}</span>
+                      <div key={nombre}>
+                        {/* Header clicable del acordeón */}
+                        <button
+                          onClick={() => toggleExpandido(key)}
+                          className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 hover:bg-gray-50 transition text-left"
+                        >
+                          <div className="w-9 h-9 rounded-full bg-brand-600 text-white flex items-center justify-center text-[11px] font-bold shrink-0">
+                            {nombre.slice(0, 2).toUpperCase()}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-sm font-semibold text-gray-900 block">{nombre}</span>
+                            <div className="flex items-center gap-2 flex-wrap mt-0.5">
                               {permisoDia && (
-                                <span className="text-[10px] font-semibold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded flex items-center gap-0.5 w-fit">
+                                <span className="text-[10px] font-semibold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded flex items-center gap-0.5">
                                   <ShieldCheck size={9} /> {permisoDia.nombre}
-                                  {permisoDia.hora_inicio && ` · ${permisoDia.hora_inicio}–${permisoDia.hora_fin}`}
                                 </span>
+                              )}
+                              {hayTardanza && (
+                                <span className="text-[10px] font-semibold text-red-600 bg-red-50 px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                                  <AlertTriangle size={9} /> Tardanza
+                                </span>
+                              )}
+                              {hayExtra && (
+                                <span className="text-[10px] font-semibold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                                  <Zap size={9} /> Horas extra
+                                </span>
+                              )}
+                              <span className="text-[10px] text-gray-400">{marcas.length} marca{marcas.length !== 1 ? 's' : ''}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {horas && (
+                              <span className="text-xs font-semibold text-brand-700 bg-brand-50 px-2 py-1 rounded-full flex items-center gap-1">
+                                <Clock size={10} /> {horas}
+                              </span>
+                            )}
+                            <ChevronDown
+                              size={16}
+                              className={`text-gray-400 transition-transform duration-200 ${abierto ? 'rotate-180' : ''}`}
+                            />
+                          </div>
+                        </button>
+
+                        {/* Detalle desplegable */}
+                        {abierto && (
+                          <div className="px-4 sm:px-5 pb-4 pt-1 bg-gray-50 border-t border-gray-100">
+                            <div className="flex flex-col gap-2 pl-12">
+                              {ordenado.map(m => {
+                                const tarde = tardanzaMins(m)
+                                const anticipado = anticipadaMins(m)
+                                const extra = extraMins(m)
+                                const isLate = tarde > 0
+                                const isEarly = anticipado > 0
+                                const isExtra = extra > 0
+                                return (
+                                  <div key={m.id}
+                                    className={`group flex items-center justify-between gap-2 text-sm px-3 py-2 rounded-lg ${
+                                      isLate   ? 'bg-red-50 text-red-700'
+                                      : isExtra  ? 'bg-purple-50 text-purple-700'
+                                      : isEarly  ? 'bg-orange-50 text-orange-700'
+                                      : m.tipo === 'entrada' ? 'bg-brand-50 text-brand-700'
+                                      : 'bg-white text-gray-600 border border-gray-100'
+                                    }`}
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      {isLate  && <AlertTriangle size={12} className="shrink-0" />}
+                                      {isExtra && <Zap size={12} className="shrink-0" />}
+                                      <span className="font-semibold capitalize">{m.tipo}</span>
+                                      <span className="tabular-nums font-medium">{fmtHora(m.timestamp)}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      {isLate  && <span className="text-xs font-bold">+{tarde}m tarde</span>}
+                                      {isEarly && <span className="text-xs font-bold">-{anticipado}m anticipado</span>}
+                                      {isExtra && <span className="text-xs font-bold">+{extra}m extra</span>}
+                                      <button
+                                        onClick={() => confirmarEliminar(m)}
+                                        className="opacity-0 group-hover:opacity-100 p-1 hover:text-red-500 transition"
+                                        title="Eliminar marcación"
+                                      >
+                                        <Trash2 size={12} />
+                                      </button>
+                                    </div>
+                                  </div>
+                                )
+                              })}
+                              {permisoDia?.hora_inicio && (
+                                <p className="text-xs text-blue-500 pt-1">
+                                  Permiso: {permisoDia.nombre} · {permisoDia.hora_inicio}–{permisoDia.hora_fin}
+                                </p>
                               )}
                             </div>
                           </div>
-                          {horas && (
-                            <span className="text-xs font-semibold text-brand-700 bg-brand-50 px-2 py-1 rounded-full shrink-0 flex items-center gap-1">
-                              <Clock size={10} /> {horas}
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex flex-wrap gap-1.5 pl-10">
-                          {ordenado.map(m => {
-                            const tarde = tardanzaMins(m)
-                            const anticipado = anticipadaMins(m)
-                            const extra = extraMins(m)
-                            const isLate = tarde > 0
-                            const isEarly = anticipado > 0
-                            const isExtra = extra > 0
-                            return (
-                              <span key={m.id}
-                                className={`group inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md ${
-                                  isLate ? 'bg-red-50 text-red-700'
-                                  : isExtra ? 'bg-purple-50 text-purple-700'
-                                  : isEarly ? 'bg-orange-50 text-orange-700'
-                                  : m.tipo === 'entrada' ? 'bg-brand-50 text-brand-700'
-                                  : 'bg-gray-100 text-gray-600'
-                                }`}
-                              >
-                                {isLate && <AlertTriangle size={9} className="shrink-0" />}
-                                {isExtra && <Zap size={9} className="shrink-0" />}
-                                <span className="font-semibold capitalize">{m.tipo}</span>
-                                <span className="tabular-nums">{fmtHora(m.timestamp)}</span>
-                                {isLate && <span className="font-semibold">+{tarde}m</span>}
-                                {isEarly && <span className="font-semibold">-{anticipado}m</span>}
-                                {isExtra && <span className="font-semibold">+{extra}m extra</span>}
-                                <button onClick={() => confirmarEliminar(m)}
-                                  className="opacity-0 group-hover:opacity-100 hover:text-red-500 transition ml-0.5">
-                                  <Trash2 size={10} />
-                                </button>
-                              </span>
-                            )
-                          })}
-                        </div>
+                        )}
                       </div>
                     )
                   })}
