@@ -56,6 +56,16 @@ export default function VentasTiquetes() {
     cargar()
   }
 
+  const eliminar = async (t: Tiquete) => {
+    await supabase.from('tiquetes').delete().eq('id', t.id)
+    // Devolver el cupo al viaje
+    if (t.viaje_id) {
+      const { data: v } = await supabase.from('viajes').select('capacidad_disponible').eq('id', t.viaje_id).single()
+      if (v) await supabase.from('viajes').update({ capacidad_disponible: v.capacidad_disponible + 1 }).eq('id', t.viaje_id)
+    }
+    cargar()
+  }
+
   const fmtFecha = (iso: string) => new Date(iso).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })
 
   return (
@@ -139,9 +149,14 @@ export default function VentasTiquetes() {
                           </button>
                         )}
                         {t.estado === 'cancelado' && (
-                          <button onClick={() => reactivar(t.id)} className="text-[10px] font-semibold text-green-600 hover:bg-green-50 px-2 py-1 rounded-lg transition">
-                            Reactivar
-                          </button>
+                          <>
+                            <button onClick={() => reactivar(t.id)} className="text-[10px] font-semibold text-green-600 hover:bg-green-50 px-2 py-1 rounded-lg transition">
+                              Reactivar
+                            </button>
+                            <button onClick={() => eliminar(t)} className="text-[10px] font-semibold text-red-500 hover:bg-red-50 px-2 py-1 rounded-lg transition">
+                              Eliminar
+                            </button>
+                          </>
                         )}
                         {t.estado !== 'cancelado' && t.estado !== 'usado' && (
                           <button onClick={() => cancelar(t.id)} className="text-[10px] font-semibold text-red-500 hover:bg-red-50 px-2 py-1 rounded-lg transition">
