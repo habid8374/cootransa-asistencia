@@ -51,6 +51,11 @@ export default function VentasTiquetes() {
     cargar()
   }
 
+  const reactivar = async (id: string) => {
+    await supabase.from('tiquetes').update({ estado: 'confirmado' }).eq('id', id)
+    cargar()
+  }
+
   const fmtFecha = (iso: string) => new Date(iso).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })
 
   return (
@@ -131,6 +136,11 @@ export default function VentasTiquetes() {
                         {t.estado === 'pendiente' && (
                           <button onClick={() => confirmar(t.id)} className="text-[10px] font-semibold text-blue-600 hover:bg-blue-50 px-2 py-1 rounded-lg transition">
                             Confirmar
+                          </button>
+                        )}
+                        {t.estado === 'cancelado' && (
+                          <button onClick={() => reactivar(t.id)} className="text-[10px] font-semibold text-green-600 hover:bg-green-50 px-2 py-1 rounded-lg transition">
+                            Reactivar
                           </button>
                         )}
                         {t.estado !== 'cancelado' && t.estado !== 'usado' && (
