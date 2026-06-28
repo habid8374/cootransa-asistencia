@@ -226,23 +226,23 @@ export default function AdminPanel() {
                           )}
                         </div>
                       </div>
-                      {/* Fila de botones — separada para tap targets grandes en móvil */}
-                      <div className="flex items-center gap-1 mt-3 pl-14">
-                        <button onClick={() => setHistorialEmpleado(e)} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium text-gray-500 hover:text-blue-600 hover:bg-blue-50 transition" title="Ver historial">
-                          <History size={14} /> <span>Historial</span>
+                      {/* Botones en grilla 2×2 para que no desborden en móvil */}
+                      <div className="grid grid-cols-2 gap-1.5 mt-3">
+                        <button onClick={() => setHistorialEmpleado(e)} className="flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium text-gray-500 hover:text-blue-600 hover:bg-blue-50 transition" title="Ver historial">
+                          <History size={14} /> Historial
                         </button>
-                        <button onClick={() => setEditarEmpleado(e)} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium text-gray-500 hover:text-brand-600 hover:bg-brand-50 transition" title="Editar empleado">
-                          <Pencil size={14} /> <span>Editar</span>
+                        <button onClick={() => setEditarEmpleado(e)} className="flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium text-gray-500 hover:text-brand-600 hover:bg-brand-50 transition" title="Editar empleado">
+                          <Pencil size={14} /> Editar
                         </button>
                         <button
                           onClick={() => confirmarToggleActivo(e)}
-                          className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition ${e.activo ? 'text-gray-500 hover:text-orange-500 hover:bg-orange-50' : 'text-green-500 hover:text-green-700 hover:bg-green-50'}`}
+                          className={`flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition ${e.activo ? 'text-gray-500 hover:text-orange-500 hover:bg-orange-50' : 'text-green-500 hover:text-green-700 hover:bg-green-50'}`}
                           title={e.activo ? 'Desactivar' : 'Reactivar'}
                         >
-                          <Power size={14} /> <span>{e.activo ? 'Desactivar' : 'Reactivar'}</span>
+                          <Power size={14} /> {e.activo ? 'Desactivar' : 'Reactivar'}
                         </button>
-                        <button onClick={() => confirmarEliminarEmpleado(e)} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium text-gray-500 hover:text-red-500 hover:bg-red-50 transition" title="Eliminar empleado">
-                          <Trash2 size={14} /> <span>Eliminar</span>
+                        <button onClick={() => confirmarEliminarEmpleado(e)} className="flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium text-gray-500 hover:text-red-500 hover:bg-red-50 transition" title="Eliminar empleado">
+                          <Trash2 size={14} /> Eliminar
                         </button>
                       </div>
                     </div>
