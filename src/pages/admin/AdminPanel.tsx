@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { supabase, type Empleado } from '../../lib/supabase'
+import { supabase, type Empleado, type TipoEmpleado } from '../../lib/supabase'
 import RegistrarEmpleado from './RegistrarEmpleado'
 import EditarEmpleado from './EditarEmpleado'
 import HistorialEmpleado from './HistorialEmpleado'
@@ -13,7 +13,7 @@ import Modal from '../../components/Modal'
 import {
   Users, ClipboardList, UserPlus, LogOut, Monitor, Trash2, Pencil,
   LayoutDashboard, BarChart3, ShieldCheck, TrendingUp, History,
-  Power, Settings, Menu,
+  Power, Settings, Menu, ChevronDown,
 } from 'lucide-react'
 
 type Tab = 'hoy' | 'empleados' | 'permisos' | 'reportes' | 'mensual' | 'tendencias' | 'config'
@@ -45,10 +45,19 @@ export default function AdminPanel() {
   const [historialEmpleado, setHistorialEmpleado] = useState<Empleado | null>(null)
   const [mostrarInactivos, setMostrarInactivos] = useState(false)
   const [modal, setModal] = useState<ModalState | null>(null)
+  const [tipos, setTipos] = useState<TipoEmpleado[]>([])
+  const [categoriasAbiertas, setCategoriasAbiertas] = useState<Set<string>>(new Set())
+
+  const toggleCategoria = (id: string) =>
+    setCategoriasAbiertas(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s })
 
   const cargarEmpleados = async () => {
-    const { data } = await supabase.from('empleados').select('*').order('nombre')
-    setEmpleados(data ?? [])
+    const [{ data: emps }, { data: tps }] = await Promise.all([
+      supabase.from('empleados').select('*, tipo_empleado:tipos_empleado(id, nombre)').order('nombre'),
+      supabase.from('tipos_empleado').select('*').order('nombre'),
+    ])
+    setEmpleados((emps as Empleado[]) ?? [])
+    setTipos((tps as TipoEmpleado[]) ?? [])
   }
 
   useEffect(() => { cargarEmpleados() }, [])
@@ -163,93 +172,149 @@ export default function AdminPanel() {
 
             {tab === 'hoy' && <Dashboard />}
 
-            {tab === 'empleados' && (
-              <>
-                <div className="flex justify-between items-center mb-4 gap-2 flex-wrap">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm text-gray-500">
-                      {empleados.filter(e => e.activo).length} activos
-                      {empleados.some(e => !e.activo) && ` · ${empleados.filter(e => !e.activo).length} inactivos`}
-                    </p>
-                    {empleados.some(e => !e.activo) && (
-                      <button
-                        onClick={() => setMostrarInactivos(v => !v)}
-                        className={`text-xs font-semibold px-2.5 py-1 rounded-lg transition ${mostrarInactivos ? 'bg-gray-200 text-gray-700' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
-                      >
-                        {mostrarInactivos ? 'Ocultar inactivos' : 'Ver inactivos'}
-                      </button>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => setShowRegistrar(true)}
-                    className="text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 px-4 py-2 rounded-lg flex items-center gap-1.5 transition"
-                  >
-                    <UserPlus size={15} /> Registrar empleado
-                  </button>
-                </div>
-                <div className="bg-white rounded-xl border border-gray-100 divide-y divide-gray-50">
-                  {empleados.filter(e => e.activo || mostrarInactivos).length === 0 ? (
-                    <p className="text-center text-sm text-gray-400 py-12">Aún no hay empleados registrados.</p>
-                  ) : empleados.filter(e => e.activo || mostrarInactivos).map(e => (
-                    <div key={e.id} className={`px-4 py-4 transition ${!e.activo ? 'opacity-50' : ''}`}>
-                      {/* Fila superior: avatar + info + botones */}
-                      <div className="flex items-center gap-3">
-                        <div className="shrink-0 relative">
-                          {e.foto_url ? (
-                            <img src={e.foto_url} className="w-11 h-11 rounded-full object-cover" alt={e.nombre} />
-                          ) : (
-                            <div className="w-11 h-11 rounded-full bg-brand-600 text-white flex items-center justify-center text-sm font-bold">
-                              {e.nombre.slice(0, 2).toUpperCase()}
-                            </div>
-                          )}
-                          {!e.activo && (
-                            <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-gray-400 rounded-full border-2 border-white flex items-center justify-center">
-                              <Power size={8} className="text-white" />
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <p className="text-sm font-semibold text-gray-900">{e.nombre}</p>
-                            {!e.activo
-                              ? <span className="text-[10px] font-semibold text-gray-500 bg-gray-200 px-1.5 py-0.5 rounded shrink-0">Inactivo</span>
-                              : e.pin
-                              ? <span className="text-[10px] font-semibold text-green-700 bg-green-50 px-1.5 py-0.5 rounded shrink-0">PIN ✓</span>
-                              : <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded shrink-0">Sin PIN</span>
-                            }
-                          </div>
-                          <p className="text-xs text-gray-400 mt-0.5">{e.cedula}</p>
-                          {(e.cargo || e.hora_entrada) && (
-                            <p className="text-xs text-gray-400">
-                              {e.cargo}{e.hora_entrada ? ` · Entrada: ${e.hora_entrada}` : ''}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                      {/* Botones en grilla 2×2 para que no desborden en móvil */}
-                      <div className="grid grid-cols-2 gap-1.5 mt-3">
-                        <button onClick={() => setHistorialEmpleado(e)} className="flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium text-gray-500 hover:text-blue-600 hover:bg-blue-50 transition" title="Ver historial">
-                          <History size={14} /> Historial
-                        </button>
-                        <button onClick={() => setEditarEmpleado(e)} className="flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium text-gray-500 hover:text-brand-600 hover:bg-brand-50 transition" title="Editar empleado">
-                          <Pencil size={14} /> Editar
-                        </button>
+            {tab === 'empleados' && (() => {
+              const visibles = empleados.filter(e => e.activo || mostrarInactivos)
+
+              // Agrupar por categoría
+              const grupos: Record<string, Empleado[]> = {}
+              for (const e of visibles) {
+                const cat = (e.tipo_empleado as TipoEmpleado | undefined)?.nombre ?? 'Sin categoría'
+                ;(grupos[cat] ??= []).push(e)
+              }
+              const ordenGrupos = [
+                ...tipos.map(t => t.nombre).filter(n => grupos[n]),
+                ...('Sin categoría' in grupos ? ['Sin categoría'] : []),
+              ]
+
+              return (
+                <>
+                  <div className="flex justify-between items-center mb-4 gap-2 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm text-gray-500">
+                        {empleados.filter(e => e.activo).length} activos
+                        {empleados.some(e => !e.activo) && ` · ${empleados.filter(e => !e.activo).length} inactivos`}
+                      </p>
+                      {empleados.some(e => !e.activo) && (
                         <button
-                          onClick={() => confirmarToggleActivo(e)}
-                          className={`flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition ${e.activo ? 'text-gray-500 hover:text-orange-500 hover:bg-orange-50' : 'text-green-500 hover:text-green-700 hover:bg-green-50'}`}
-                          title={e.activo ? 'Desactivar' : 'Reactivar'}
+                          onClick={() => setMostrarInactivos(v => !v)}
+                          className={`text-xs font-semibold px-2.5 py-1 rounded-lg transition ${mostrarInactivos ? 'bg-gray-200 text-gray-700' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
                         >
-                          <Power size={14} /> {e.activo ? 'Desactivar' : 'Reactivar'}
+                          {mostrarInactivos ? 'Ocultar inactivos' : 'Ver inactivos'}
                         </button>
-                        <button onClick={() => confirmarEliminarEmpleado(e)} className="flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium text-gray-500 hover:text-red-500 hover:bg-red-50 transition" title="Eliminar empleado">
-                          <Trash2 size={14} /> Eliminar
-                        </button>
-                      </div>
+                      )}
                     </div>
-                  ))}
-                </div>
-              </>
-            )}
+                    <button
+                      onClick={() => setShowRegistrar(true)}
+                      className="text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 px-4 py-2 rounded-lg flex items-center gap-1.5 transition"
+                    >
+                      <UserPlus size={15} /> Registrar empleado
+                    </button>
+                  </div>
+
+                  {visibles.length === 0 ? (
+                    <div className="bg-white rounded-xl border border-gray-100 py-12 text-center text-sm text-gray-400">
+                      Aún no hay empleados registrados.
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {ordenGrupos.map(catNombre => {
+                        const emps = grupos[catNombre] ?? []
+                        const abierto = categoriasAbiertas.has(catNombre)
+                        const activos = emps.filter(e => e.activo).length
+                        return (
+                          <div key={catNombre} className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+                            {/* Header acordeón */}
+                            <button
+                              onClick={() => toggleCategoria(catNombre)}
+                              className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition"
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-brand-50 flex items-center justify-center">
+                                  <Users size={15} className="text-brand-600" />
+                                </div>
+                                <div className="text-left">
+                                  <p className="text-sm font-bold text-gray-900">{catNombre}</p>
+                                  <p className="text-xs text-gray-400">
+                                    {activos} activo{activos !== 1 ? 's' : ''}
+                                    {emps.length > activos && ` · ${emps.length - activos} inactivo${emps.length - activos !== 1 ? 's' : ''}`}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                                  {emps.length}
+                                </span>
+                                <ChevronDown size={16} className={`text-gray-400 transition-transform duration-200 ${abierto ? 'rotate-180' : ''}`} />
+                              </div>
+                            </button>
+
+                            {/* Contenido desplegable */}
+                            {abierto && (
+                              <div className="border-t border-gray-100 divide-y divide-gray-50">
+                                {emps.map(e => (
+                                  <div key={e.id} className={`px-4 py-4 transition ${!e.activo ? 'opacity-50' : ''}`}>
+                                    <div className="flex items-center gap-3">
+                                      <div className="shrink-0 relative">
+                                        {e.foto_url ? (
+                                          <img src={e.foto_url} className="w-11 h-11 rounded-full object-cover" alt={e.nombre} />
+                                        ) : (
+                                          <div className="w-11 h-11 rounded-full bg-brand-600 text-white flex items-center justify-center text-sm font-bold">
+                                            {e.nombre.slice(0, 2).toUpperCase()}
+                                          </div>
+                                        )}
+                                        {!e.activo && (
+                                          <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-gray-400 rounded-full border-2 border-white flex items-center justify-center">
+                                            <Power size={8} className="text-white" />
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                          <p className="text-sm font-semibold text-gray-900">{e.nombre}</p>
+                                          {!e.activo
+                                            ? <span className="text-[10px] font-semibold text-gray-500 bg-gray-200 px-1.5 py-0.5 rounded">Inactivo</span>
+                                            : e.pin
+                                            ? <span className="text-[10px] font-semibold text-green-700 bg-green-50 px-1.5 py-0.5 rounded">PIN ✓</span>
+                                            : <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">Sin PIN</span>
+                                          }
+                                        </div>
+                                        <p className="text-xs text-gray-400 mt-0.5">{e.cedula}</p>
+                                        {(e.cargo || e.hora_entrada) && (
+                                          <p className="text-xs text-gray-400">
+                                            {e.cargo}{e.hora_entrada ? ` · Entrada: ${e.hora_entrada}` : ''}
+                                          </p>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-1.5 mt-3">
+                                      <button onClick={() => setHistorialEmpleado(e)} className="flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium text-gray-500 hover:text-blue-600 hover:bg-blue-50 transition">
+                                        <History size={14} /> Historial
+                                      </button>
+                                      <button onClick={() => setEditarEmpleado(e)} className="flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium text-gray-500 hover:text-brand-600 hover:bg-brand-50 transition">
+                                        <Pencil size={14} /> Editar
+                                      </button>
+                                      <button
+                                        onClick={() => confirmarToggleActivo(e)}
+                                        className={`flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition ${e.activo ? 'text-gray-500 hover:text-orange-500 hover:bg-orange-50' : 'text-green-500 hover:text-green-700 hover:bg-green-50'}`}
+                                      >
+                                        <Power size={14} /> {e.activo ? 'Desactivar' : 'Reactivar'}
+                                      </button>
+                                      <button onClick={() => confirmarEliminarEmpleado(e)} className="flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium text-gray-500 hover:text-red-500 hover:bg-red-50 transition">
+                                        <Trash2 size={14} /> Eliminar
+                                      </button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </>
+              )
+            })()}
 
             {tab === 'permisos'   && <Permisos />}
             {tab === 'reportes'   && <Reportes />}
