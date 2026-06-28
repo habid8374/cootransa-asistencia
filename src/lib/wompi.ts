@@ -37,3 +37,19 @@ export async function verificarTransaccion(transactionId: string): Promise<{ sta
     return null
   }
 }
+
+// Verifica la firma que Wompi envía en la URL de retorno.
+// Wompi computa: SHA-256(transactionId + status + currency + amountInCents + INTEGRITY_SECRET)
+export async function verificarFirmaRetorno(
+  transactionId: string,
+  status: string,
+  currency: string,
+  amountInCents: number,
+  firmaRecibida: string
+): Promise<boolean> {
+  const text = `${transactionId}${status}${currency}${amountInCents}${INTEGRITY_SECRET}`
+  const data = new TextEncoder().encode(text)
+  const hash = await crypto.subtle.digest('SHA-256', data)
+  const computed = Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('')
+  return computed === firmaRecibida
+}
