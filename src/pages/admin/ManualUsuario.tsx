@@ -63,10 +63,7 @@ export default function ManualUsuario() {
       <div className="bg-gray-900 rounded-2xl p-8 mb-8 print:rounded-none print:mb-4">
         <p className="text-brand-400 text-xs font-bold uppercase tracking-widest mb-2">Manual de usuario</p>
         <h1 className="text-3xl font-bold text-white mb-1">Sistema de Control de Asistencia</h1>
-        <div className="flex items-center gap-2 mt-2">
-          <img src="/axentiatech-logo.jpg" alt="Axentiatech" className="w-6 h-6 rounded object-contain bg-white p-0.5" />
-          <p className="text-gray-400 text-sm">COOTRANSA Ltda. · <span className="text-gray-300 font-semibold">Axentiatech</span> · 2026</p>
-        </div>
+        <p className="text-gray-400 text-sm mt-2">COOTRANSA Ltda. · 2026</p>
         <button
           onClick={() => window.print()}
           className="mt-5 flex items-center gap-2 text-sm font-semibold text-gray-900 bg-white hover:bg-gray-100 px-4 py-2 rounded-lg transition print:hidden"
