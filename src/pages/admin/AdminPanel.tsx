@@ -164,6 +164,17 @@ export default function AdminPanel() {
             <LogOut size={18} className="flex-shrink-0" />
             {open && <span className="truncate">Cerrar sesión</span>}
           </button>
+
+          {/* Powered by Axentiatech */}
+          <div className={`mt-3 pt-3 border-t border-white/5 flex items-center gap-2 px-2 ${open ? '' : 'justify-center'}`}>
+            <img src="/axentiatech-logo.jpg" alt="Axentiatech" className="w-6 h-6 rounded object-contain bg-white p-0.5 shrink-0" />
+            {open && (
+              <div className="overflow-hidden">
+                <p className="text-[9px] text-gray-500 uppercase tracking-widest leading-tight">Powered by</p>
+                <p className="text-[11px] font-semibold text-gray-400 leading-tight">Axentiatech</p>
+              </div>
+            )}
+          </div>
         </div>
       </aside>
 
