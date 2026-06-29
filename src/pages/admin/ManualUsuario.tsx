@@ -318,8 +318,8 @@ export default function ManualUsuario() {
             <p className="text-white font-bold mb-1">¿Necesita ayuda adicional?</p>
             <p className="text-gray-400 text-sm mb-4">Comuníquese con el equipo de soporte</p>
             <div className="flex items-center justify-center gap-6 flex-wrap mb-6">
-              <span className="text-brand-400 text-sm font-semibold">axentiatechnologies@gmail.com</span>
-              <span className="text-brand-400 text-sm font-semibold">WhatsApp: 324 686 8538</span>
+              <span className="text-white text-sm font-semibold">axentiatechnologies@gmail.com</span>
+              <span className="text-white text-sm font-semibold">WhatsApp: 324 686 8538</span>
             </div>
             <div className="border-t border-white/10 pt-5 flex items-center justify-center gap-2.5">
               <img src="/axentiatech-logo.jpg" alt="Axentiatech" className="w-7 h-7 rounded object-contain bg-white p-0.5" />
