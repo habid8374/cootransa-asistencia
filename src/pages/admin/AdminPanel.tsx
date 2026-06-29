@@ -165,16 +165,6 @@ export default function AdminPanel() {
             {open && <span className="truncate">Cerrar sesión</span>}
           </button>
 
-          {/* Powered by Axentiatech */}
-          <div className={`mt-3 pt-3 border-t border-white/5 flex items-center gap-2 px-2 ${open ? '' : 'justify-center'}`}>
-            <img src="/axentiatech-logo.jpg" alt="Axentiatech" className="w-6 h-6 rounded object-contain bg-white p-0.5 shrink-0" />
-            {open && (
-              <div className="overflow-hidden">
-                <p className="text-[9px] text-gray-500 uppercase tracking-widest leading-tight">Powered by</p>
-                <p className="text-[11px] font-semibold text-gray-400 leading-tight">Axentiatech</p>
-              </div>
-            )}
-          </div>
         </div>
       </aside>
 
@@ -344,6 +334,13 @@ export default function AdminPanel() {
 
           </div>
         </main>
+
+        {/* Footer Powered by Axentiatech */}
+        <footer className="border-t border-gray-100 bg-white px-6 py-2.5 flex items-center justify-center gap-2 flex-shrink-0">
+          <img src="/axentiatech-logo.jpg" alt="Axentiatech" className="w-5 h-5 rounded object-contain" />
+          <span className="text-[10px] text-gray-400 uppercase tracking-widest font-medium">Powered by</span>
+          <span className="text-[11px] font-bold text-gray-500">Axentiatech</span>
+        </footer>
       </div>
 
       {/* ── Modales ── */}
