@@ -13,6 +13,7 @@ import MiTiquete from './pages/tiquetes/MiTiquete'
 import MisTiquetes from './pages/tiquetes/MisTiquetes'
 import ValidarQR from './pages/conductor/ValidarQR'
 import ManualUsuario from './pages/admin/ManualUsuario'
+import GuionPresentacion from './pages/admin/GuionPresentacion'
 
 function TiquetesAdminGate() {
   const [session, setSession] = useState<Session | null | undefined>(undefined)
@@ -66,6 +67,7 @@ export default function App() {
         <Route path="/tiquetes/ver/:id" element={<MiTiquete />} />
         <Route path="/tiquetes/mis-tiquetes" element={<MisTiquetes />} />
         <Route path="/admin/manual" element={<ManualUsuario />} />
+        <Route path="/admin/guion" element={<GuionPresentacion />} />
         <Route path="/conductor" element={<ValidarQR />} />
         <Route path="*" element={<Navigate to="/admin" replace />} />
       </Routes>
