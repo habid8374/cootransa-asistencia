@@ -337,8 +337,8 @@ export default function AdminPanel() {
 
         {/* Footer Powered by Axentiatech */}
         <footer className="border-t border-gray-100 bg-white px-6 py-2.5 flex items-center justify-center gap-2 flex-shrink-0">
-          <img src="/axentiatech-logo.jpg" alt="Axentiatech" className="w-5 h-5 rounded object-contain" />
           <span className="text-[10px] text-gray-400 uppercase tracking-widest font-medium">Powered by</span>
+          <img src="/axentiatech-logo.jpg" alt="Axentiatech" className="w-5 h-5 rounded object-contain" />
           <span className="text-[11px] font-bold text-gray-500">Axentiatech</span>
         </footer>
       </div>
