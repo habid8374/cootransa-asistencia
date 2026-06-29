@@ -63,7 +63,7 @@ export default function ManualUsuario() {
       <div className="bg-gray-900 rounded-2xl p-8 mb-8 print:rounded-none print:mb-4">
         <div className="flex items-center gap-3 mb-3">
           <img src="/favicon.png" alt="COOTRANSA" className="w-10 h-10 rounded-full object-contain shrink-0" />
-          <p className="text-brand-400 text-xs font-bold uppercase tracking-widest">Manual de usuario</p>
+          <p className="text-white text-xs font-bold uppercase tracking-widest">Manual de usuario</p>
         </div>
         <h1 className="text-3xl font-bold text-white mb-1">Sistema de Control de Asistencia</h1>
         <p className="text-gray-400 text-sm mt-2">COOTRANSA Ltda. · 2026</p>
