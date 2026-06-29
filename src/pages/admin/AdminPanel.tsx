@@ -139,7 +139,7 @@ export default function AdminPanel() {
         {/* Pie del sidebar */}
         <div className="px-2 pb-3 pt-2 border-t border-white/5 space-y-0.5 flex-shrink-0">
           <a
-            href="/kiosco"
+            href="/terminal"
             target="_blank"
             title={!open ? 'Terminal de marcación' : undefined}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-400 hover:text-white hover:bg-white/10 transition-colors"

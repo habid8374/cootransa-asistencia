@@ -56,7 +56,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Navigate to="/admin" replace />} />
-        <Route path="/kiosco" element={<Terminal />} />
+        <Route path="/terminal" element={<Terminal />} />
         <Route path="/admin" element={<AdminGate />} />
         <Route path="/tiquetes/admin" element={<TiquetesAdminGate />} />
         <Route path="/tiquetes" element={<TiquetesHome />} />
