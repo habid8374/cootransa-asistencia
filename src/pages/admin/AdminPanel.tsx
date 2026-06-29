@@ -13,7 +13,7 @@ import Modal from '../../components/Modal'
 import {
   Users, ClipboardList, UserPlus, LogOut, Monitor, Trash2, Pencil,
   LayoutDashboard, BarChart3, ShieldCheck, TrendingUp, History,
-  Power, Settings, Menu, ChevronDown,
+  Power, Settings, Menu, ChevronDown, BookOpen,
 } from 'lucide-react'
 
 type Tab = 'hoy' | 'empleados' | 'permisos' | 'reportes' | 'mensual' | 'tendencias' | 'config'
@@ -146,6 +146,15 @@ export default function AdminPanel() {
           >
             <Monitor size={18} className="flex-shrink-0" />
             {open && <span className="truncate">Terminal</span>}
+          </a>
+          <a
+            href="/admin/manual"
+            target="_blank"
+            title={!open ? 'Manual de usuario' : undefined}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+          >
+            <BookOpen size={18} className="flex-shrink-0" />
+            {open && <span className="truncate">Manual de usuario</span>}
           </a>
           <button
             onClick={() => supabase.auth.signOut()}
