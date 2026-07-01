@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase, type Empleado } from '../lib/supabase'
 import { loadModels, getDescriptor, matchDescriptor } from '../lib/face'
+import { hashPin } from '../lib/crypto'
 import { useCamera } from '../hooks/useCamera'
 import { CheckCircle2, Loader2, Clock, Search, ChevronLeft, AlertCircle } from 'lucide-react'
 
@@ -23,6 +24,9 @@ export default function Terminal() {
   const [pin, setPin] = useState('')
   const [pinError, setPinError] = useState(false)
   const [sinPin, setSinPin] = useState(false)
+  const pinIntentosRef = useRef(0)
+  const [pinBloqueado, setPinBloqueado] = useState(false)
+  const [bloqueadoHasta, setBloqueadoHasta] = useState(0)
 
   const resetFallback = () => {
     setBusqueda('')
@@ -31,6 +35,8 @@ export default function Terminal() {
     setPinError(false)
     setSinPin(false)
     fallidosRef.current = 0
+    pinIntentosRef.current = 0
+    setPinBloqueado(false)
   }
 
   useEffect(() => {
@@ -119,16 +125,30 @@ export default function Terminal() {
 
   const verificarPin = async (pinIngresado: string) => {
     if (!empSeleccionado) return
+    if (pinBloqueado && Date.now() < bloqueadoHasta) {
+      setPin('')
+      return
+    }
     if (!empSeleccionado.pin) {
       setSinPin(true)
       setPin('')
       return
     }
-    if (empSeleccionado.pin !== pinIngresado) {
+    const hash = await hashPin(pinIngresado)
+    if (empSeleccionado.pin !== hash) {
+      pinIntentosRef.current += 1
+      if (pinIntentosRef.current >= 5) {
+        const hasta = Date.now() + 60_000
+        setBloqueadoHasta(hasta)
+        setPinBloqueado(true)
+        pinIntentosRef.current = 0
+        setTimeout(() => setPinBloqueado(false), 60_000)
+      }
       setPinError(true)
       setTimeout(() => { setPin(''); setPinError(false) }, 900)
       return
     }
+    pinIntentosRef.current = 0
     lockRef.current = true
     setPin('')
     await registrar(empSeleccionado)
@@ -260,7 +280,13 @@ export default function Terminal() {
                 ))}
               </div>
 
-              {pinError && (
+              {pinBloqueado && (
+                <div className="flex items-center gap-1.5 text-red-400 text-sm -mt-3 text-center max-w-[260px]">
+                  <AlertCircle size={15} className="shrink-0" />
+                  Demasiados intentos. Espere 60 segundos.
+                </div>
+              )}
+              {!pinBloqueado && pinError && (
                 <div className="flex items-center gap-1.5 text-red-400 text-sm -mt-3">
                   <AlertCircle size={15} /> PIN incorrecto
                 </div>

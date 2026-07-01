@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase, type Empleado, type TipoEmpleado } from '../../lib/supabase'
 import { loadModels, getDescriptor } from '../../lib/face'
+import { hashPin } from '../../lib/crypto'
 import { useCamera } from '../../hooks/useCamera'
 import { Camera, Loader2, CheckCircle2, X, RefreshCw, LogIn, LogOut, UserCircle2 } from 'lucide-react'
 
@@ -28,7 +29,7 @@ export default function EditarEmpleado({
   const [nombre, setNombre] = useState(empleado.nombre)
   const [cedula, setCedula] = useState(empleado.cedula)
   const [cargo, setCargo] = useState(empleado.cargo ?? '')
-  const [pin, setPin] = useState(empleado.pin ?? '')
+  const [pin, setPin] = useState('')
   const [horaEntrada, setHoraEntrada] = useState(empleado.hora_entrada ?? '')
   const [horaSalida, setHoraSalida] = useState(empleado.hora_salida ?? '')
   const [tipoEmpleadoId, setTipoEmpleadoId] = useState(empleado.tipo_empleado_id ?? '')
@@ -70,10 +71,11 @@ export default function EditarEmpleado({
     if (pin && pin.length !== 4) { setMsg('El PIN debe tener exactamente 4 dígitos.'); return }
     if (!horaEntrada || !horaSalida) { setMsg('La hora de entrada y salida son obligatorias.'); return }
     setSaving(true)
+    const pinHash = pin ? await hashPin(pin) : undefined
     const updates: Partial<Empleado> = {
       nombre, cedula,
       cargo: cargo || undefined,
-      pin: pin || undefined,
+      ...(pinHash ? { pin: pinHash } : {}),
       hora_entrada: horaEntrada,
       hora_salida: horaSalida,
       tipo_empleado_id: tipoEmpleadoId || undefined,

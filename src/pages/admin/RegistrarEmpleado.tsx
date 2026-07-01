@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase, type TipoEmpleado } from '../../lib/supabase'
 import { loadModels, getDescriptor } from '../../lib/face'
+import { hashPin } from '../../lib/crypto'
 import { useCamera } from '../../hooks/useCamera'
 import { Camera, Loader2, CheckCircle2, X, LogIn, LogOut, RefreshCw } from 'lucide-react'
 
@@ -58,11 +59,12 @@ export default function RegistrarEmpleado({ onClose, onSaved }: { onClose: () =>
     if (pin && pin.length !== 4) { setMsg('El PIN debe tener exactamente 4 dígitos.'); return }
     if (!horaEntrada || !horaSalida) { setMsg('La hora de entrada y salida son obligatorias.'); return }
     setSaving(true)
+    const pinHash = pin ? await hashPin(pin) : null
     const { error: err } = await supabase.from('empleados').insert({
       nombre, cedula, cargo: cargo || null, descriptor, activo: true,
       hora_entrada: horaEntrada, hora_salida: horaSalida,
       tipo_empleado_id: tipoEmpleadoId || null,
-      ...(pin ? { pin } : {}),
+      ...(pinHash ? { pin: pinHash } : {}),
       ...(fotoUrl ? { foto_url: fotoUrl } : {}),
     })
     setSaving(false)

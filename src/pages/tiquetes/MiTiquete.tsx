@@ -40,7 +40,6 @@ export default function MiTiquete() {
       // ¿Viene de Wompi? (tiene param "id" en URL = transaction ID de Wompi)
       const wompiTxId = searchParams.get('id')
       const wompiStatus = searchParams.get('status')
-      const wompiRef = searchParams.get('reference')
       const wompiAmount = searchParams.get('amount_in_cents')
       const wompiCurrency = searchParams.get('currency') ?? 'COP'
       const wompiFirma = searchParams.get('signature[integrity]') ?? ''
@@ -65,11 +64,6 @@ export default function MiTiquete() {
           if (!pagoProbado) {
             const tx = await verificarTransaccion(wompiTxId)
             if (tx?.status === 'APPROVED') pagoProbado = true
-          }
-
-          // 3. Último recurso: si la referencia en la URL coincide con el ID del tiquete
-          if (!pagoProbado && wompiRef && id && wompiRef === id) {
-            pagoProbado = true
           }
 
           if (pagoProbado) {
