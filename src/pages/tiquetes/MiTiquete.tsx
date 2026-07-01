@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useSearchParams, Link } from 'react-router-dom'
 import { supabase, type Tiquete } from '../../lib/supabase'
-import { verificarTransaccion, verificarFirmaRetorno } from '../../lib/wompi'
+import { verificarTransaccion } from '../../lib/wompi'
 import QRCode from 'qrcode'
 import { CheckCircle2, Clock, MapPin, User, Calendar, ArrowLeft, AlertCircle, XCircle, Loader2 } from 'lucide-react'
 
@@ -40,31 +40,15 @@ export default function MiTiquete() {
       // ¿Viene de Wompi? (tiene param "id" en URL = transaction ID de Wompi)
       const wompiTxId = searchParams.get('id')
       const wompiStatus = searchParams.get('status')
-      const wompiAmount = searchParams.get('amount_in_cents')
-      const wompiCurrency = searchParams.get('currency') ?? 'COP'
-      const wompiFirma = searchParams.get('signature[integrity]') ?? ''
 
       let data = await cargarTiquete()
 
-      // Si viene de Wompi y el tiquete sigue pendiente → verificar y confirmar
+      // Si viene de Wompi y el tiquete sigue pendiente → verificar con la API y confirmar
       if (wompiTxId && wompiStatus === 'APPROVED' && data?.estado === 'pendiente') {
         setVerificando(true)
         try {
-          let pagoProbado = false
-
-          // 1. Verificar con la firma de retorno que Wompi incluye en la URL
-          //    (más confiable que la API — no depende de CORS)
-          if (wompiFirma && wompiAmount) {
-            pagoProbado = await verificarFirmaRetorno(
-              wompiTxId, wompiStatus, wompiCurrency, parseInt(wompiAmount), wompiFirma
-            )
-          }
-
-          // 2. Fallback: verificar con la API de Wompi
-          if (!pagoProbado) {
-            const tx = await verificarTransaccion(wompiTxId)
-            if (tx?.status === 'APPROVED') pagoProbado = true
-          }
+          const tx = await verificarTransaccion(wompiTxId)
+          const pagoProbado = tx?.status === 'APPROVED'
 
           if (pagoProbado) {
             await supabase.from('tiquetes').update({

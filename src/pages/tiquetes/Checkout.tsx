@@ -106,24 +106,23 @@ export default function Checkout() {
 
     if (pasErr || !pas) { setErr('Error al registrar pasajero.'); return null }
 
-    const { data: tiq, error: tiqErr } = await supabase
-      .from('tiquetes')
-      .insert({
-        viaje_id: viaje.id,
-        pasajero_id: pas.id,
-        precio,
-        estado: estadoInicial,
-        metodo_pago: metodoPago,
-        referencia_pago: ref ?? null,
-        parada_origen: esMultiParada ? paradaOrigen : null,
-        parada_destino: esMultiParada ? paradaDestino : null,
-      })
-      .select('id').single()
+    // Compra atómica: verifica cupos y crea el tiquete en una sola transacción en BD
+    const { data: tiqueteId, error: rpcErr } = await supabase.rpc('comprar_tiquete', {
+      p_viaje_id:        viaje.id,
+      p_pasajero_id:     pas.id,
+      p_precio:          precio,
+      p_estado:          estadoInicial,
+      p_metodo_pago:     metodoPago,
+      p_referencia_pago: ref ?? null,
+      p_parada_origen:   esMultiParada ? paradaOrigen : null,
+      p_parada_destino:  esMultiParada ? paradaDestino : null,
+    })
 
-    if (tiqErr || !tiq) { setErr('Error al crear tiquete.'); return null }
-
-    await supabase.from('viajes').update({ capacidad_disponible: viaje.capacidad_disponible - 1 }).eq('id', viaje.id)
-    return tiq.id as string
+    if (rpcErr) {
+      setErr(rpcErr.message.includes('cupos') ? 'No hay cupos disponibles. El viaje está lleno.' : 'Error al crear tiquete.')
+      return null
+    }
+    return tiqueteId as string
   }
 
   const comprar = async (e: React.FormEvent) => {
