@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase, type Empleado, type TipoEmpleado } from '../../lib/supabase'
 import { loadModels, getDescriptor } from '../../lib/face'
-import { hashPin } from '../../lib/crypto'
+import { hashPinPbkdf2 } from '../../lib/crypto'
 import { useCamera } from '../../hooks/useCamera'
 import { Camera, Loader2, CheckCircle2, X, RefreshCw, LogIn, LogOut, UserCircle2 } from 'lucide-react'
 
@@ -71,7 +71,7 @@ export default function EditarEmpleado({
     if (pin && pin.length !== 4) { setMsg('El PIN debe tener exactamente 4 dígitos.'); return }
     if (!horaEntrada || !horaSalida) { setMsg('La hora de entrada y salida son obligatorias.'); return }
     setSaving(true)
-    const pinHash = pin ? await hashPin(pin) : undefined
+    const pinHash = pin ? await hashPinPbkdf2(pin, cedula.trim()) : undefined
     const updates: Partial<Empleado> = {
       nombre, cedula,
       cargo: cargo || undefined,

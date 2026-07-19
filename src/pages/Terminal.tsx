@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase, type Empleado } from '../lib/supabase'
 import { loadModels, getDescriptor, matchDescriptor } from '../lib/face'
-import { hashPin } from '../lib/crypto'
+import { hashPin, hashPinPbkdf2 } from '../lib/crypto'
 import { useCamera } from '../hooks/useCamera'
 import { CheckCircle2, Loader2, Clock, Search, ChevronLeft, AlertCircle } from 'lucide-react'
 
@@ -10,6 +10,22 @@ type Estado =
   | { tipo: 'escaneando' }
   | { tipo: 'exito'; empleado: Empleado; marca: 'entrada' | 'salida'; hora: string }
   | { tipo: 'fallback' }
+
+function getPinLockoutUntil(cedula: string): number | null {
+  const raw = localStorage.getItem(`pin_lockout_${cedula}`)
+  if (!raw) return null
+  const until = parseInt(raw, 10)
+  if (Date.now() > until) { localStorage.removeItem(`pin_lockout_${cedula}`); return null }
+  return until
+}
+function setPinLockout(cedula: string): number {
+  const until = Date.now() + 60_000
+  localStorage.setItem(`pin_lockout_${cedula}`, String(until))
+  return until
+}
+function clearPinLockout(cedula: string) {
+  localStorage.removeItem(`pin_lockout_${cedula}`)
+}
 
 export default function Terminal() {
   const { videoRef, ready, error } = useCamera()
@@ -26,7 +42,6 @@ export default function Terminal() {
   const [sinPin, setSinPin] = useState(false)
   const pinIntentosRef = useRef(0)
   const [pinBloqueado, setPinBloqueado] = useState(false)
-  const [bloqueadoHasta, setBloqueadoHasta] = useState(0)
 
   const resetFallback = () => {
     setBusqueda('')
@@ -47,7 +62,7 @@ export default function Terminal() {
   useEffect(() => {
     async function init() {
       await loadModels()
-      const { data } = await supabase.from('empleados').select('*').eq('activo', true)
+      const { data } = await supabase.from('empleados').select('id, nombre, cedula, cargo, activo, descriptor, foto_url, hora_entrada, hora_salida').eq('activo', true)
       setEmpleados(data ?? [])
       setEstado({ tipo: 'escaneando' })
     }
@@ -72,8 +87,8 @@ export default function Terminal() {
           if (fallidosRef.current >= 3) {
             fallidosRef.current = 0
             lockRef.current = true
-            // Recarga empleados para tener PINs actualizados
-            supabase.from('empleados').select('*').eq('activo', true)
+            // Recarga empleados para tener descriptores actualizados
+            supabase.from('empleados').select('id, nombre, cedula, cargo, activo, descriptor, foto_url, hora_entrada, hora_salida').eq('activo', true)
               .then(({ data }) => { if (data) setEmpleados(data) })
             setEstado({ tipo: 'fallback' })
           }
@@ -125,21 +140,40 @@ export default function Terminal() {
 
   const verificarPin = async (pinIngresado: string) => {
     if (!empSeleccionado) return
-    if (pinBloqueado && Date.now() < bloqueadoHasta) {
-      setPin('')
-      return
+
+    // Check localStorage-persisted lockout (survives page refresh)
+    const lockoutUntil = getPinLockoutUntil(empSeleccionado.cedula)
+    if (lockoutUntil) {
+      if (!pinBloqueado) setPinBloqueado(true)
+      setPin(''); return
     }
-    if (!empSeleccionado.pin) {
-      setSinPin(true)
-      setPin('')
-      return
+
+    // Fetch PIN hash on demand — no longer pre-loaded with the employee list
+    const { data: empData } = await supabase
+      .from('empleados').select('pin').eq('id', empSeleccionado.id).single()
+    const storedHash = empData?.pin ?? null
+
+    if (!storedHash) {
+      setSinPin(true); setPin(''); return
     }
-    const hash = await hashPin(pinIngresado)
-    if (empSeleccionado.pin !== hash) {
+
+    // Try PBKDF2 with cedula as salt (new format)
+    const pbkdf2Hash = await hashPinPbkdf2(pinIngresado, empSeleccionado.cedula)
+    let match = pbkdf2Hash === storedHash
+
+    // Fallback: try legacy SHA-256 and auto-migrate to PBKDF2 on success
+    if (!match) {
+      const legacyHash = await hashPin(pinIngresado)
+      if (legacyHash === storedHash) {
+        match = true
+        supabase.from('empleados').update({ pin: pbkdf2Hash }).eq('id', empSeleccionado.id)
+      }
+    }
+
+    if (!match) {
       pinIntentosRef.current += 1
       if (pinIntentosRef.current >= 5) {
-        const hasta = Date.now() + 60_000
-        setBloqueadoHasta(hasta)
+        setPinLockout(empSeleccionado.cedula)
         setPinBloqueado(true)
         pinIntentosRef.current = 0
         setTimeout(() => setPinBloqueado(false), 60_000)
@@ -148,6 +182,8 @@ export default function Terminal() {
       setTimeout(() => { setPin(''); setPinError(false) }, 900)
       return
     }
+
+    clearPinLockout(empSeleccionado.cedula)
     pinIntentosRef.current = 0
     lockRef.current = true
     setPin('')
@@ -239,7 +275,16 @@ export default function Terminal() {
                 ) : empleadosFiltrados.map(e => (
                   <button
                     key={e.id}
-                    onClick={() => setEmpSeleccionado(e)}
+                    onClick={() => {
+                      setEmpSeleccionado(e)
+                      const lockoutUntil = getPinLockoutUntil(e.cedula)
+                      if (lockoutUntil) {
+                        setPinBloqueado(true)
+                        setTimeout(() => setPinBloqueado(false), lockoutUntil - Date.now())
+                      } else {
+                        setPinBloqueado(false)
+                      }
+                    }}
                     className="w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl hover:bg-white/10 active:bg-white/20 transition text-left"
                   >
                     <div className="w-11 h-11 rounded-full bg-brand-600 flex items-center justify-center text-sm font-bold shrink-0">
